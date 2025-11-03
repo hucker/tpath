@@ -1,0 +1,165 @@
+"""
+Test file for Age functionality (_age.py).
+"""
+
+import os
+import sys
+import time
+from datetime import datetime, timedelta
+
+# Add the src directory to the path so we can import tpath
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from tpath import TPath
+from tpath._age import Age
+
+
+def test_age_properties():
+    """Test Age class properties."""
+    print("Testing Age properties...")
+    
+    # Create a test file
+    test_file = TPath("test_age_file.txt")
+    test_file.write_text("Testing age functionality")
+    
+    try:
+        age = test_file.age
+        assert isinstance(age, Age)
+        
+        # Test that all time properties exist and return numbers
+        assert isinstance(age.seconds, float)
+        assert isinstance(age.minutes, float) 
+        assert isinstance(age.hours, float)
+        assert isinstance(age.days, float)
+        assert isinstance(age.weeks, float)
+        assert isinstance(age.months, float)
+        assert isinstance(age.years, float)
+        
+        # Test relationships between units
+        assert age.minutes == age.seconds / 60
+        assert age.hours == age.minutes / 60  
+        assert age.days == age.hours / 24
+        assert age.weeks == age.days / 7
+        
+        print(f"Age in seconds: {age.seconds:.2f}")
+        print(f"Age in minutes: {age.minutes:.6f}")
+        print(f"Age in hours: {age.hours:.8f}")
+        print(f"Age in days: {age.days:.10f}")
+        print(f"Age in weeks: {age.weeks:.10f}")
+        print(f"Age in months: {age.months:.10f}")
+        print(f"Age in years: {age.years:.10f}")
+        
+        print("✅ Age properties tests passed")
+        
+    finally:
+        # Clean up
+        if test_file.exists():
+            test_file.unlink()
+
+
+def test_age_with_custom_base_time():
+    """Test Age calculations with custom base time."""
+    print("Testing Age with custom base time...")
+    
+    # Create test file
+    test_file = TPath("test_age_base_file.txt") 
+    test_file.write_text("Testing base time")
+    
+    try:
+        # Test with yesterday as base time
+        yesterday = datetime.now() - timedelta(days=1)
+        path_with_base = TPath("test_age_base_file.txt", base_time=yesterday)
+        
+        age = path_with_base.age
+        assert isinstance(age, Age)
+        
+        # The file should appear "older" when base time is in the past
+        assert age.days < 0  # Negative because file is newer than base time
+        
+        print(f"Age with yesterday base: {age.days:.2f} days")
+        
+        # Test with future base time
+        tomorrow = datetime.now() + timedelta(days=1)
+        path_future = TPath("test_age_base_file.txt", base_time=tomorrow)
+        future_age = path_future.age
+        
+        # File should appear even "newer" (more negative) with future base
+        assert future_age.days < age.days
+        
+        print(f"Age with tomorrow base: {future_age.days:.2f} days")
+        print("✅ Custom base time tests passed")
+        
+    finally:
+        # Clean up
+        if test_file.exists():
+            test_file.unlink()
+
+
+def test_age_time_progression():
+    """Test that age increases over time."""
+    print("Testing age time progression...")
+    
+    # Create test file
+    test_file = TPath("test_age_progression.txt")
+    test_file.write_text("Testing time progression")
+    
+    try:
+        # Get initial age
+        initial_age = test_file.age.seconds
+        
+        # Wait a short time
+        time.sleep(0.1)
+        
+        # Get age again
+        later_age = test_file.age.seconds
+        
+        # Age should have increased
+        assert later_age > initial_age
+        
+        print(f"Initial age: {initial_age:.3f} seconds")
+        print(f"Later age: {later_age:.3f} seconds")
+        print(f"Difference: {later_age - initial_age:.3f} seconds")
+        print("✅ Time progression tests passed")
+        
+    finally:
+        # Clean up
+        if test_file.exists():
+            test_file.unlink()
+
+
+def test_different_time_types():
+    """Test age calculation for different time types (ctime, mtime, atime)."""
+    print("Testing different time types...")
+    
+    # Create test file
+    test_file = TPath("test_time_types.txt")
+    test_file.write_text("Testing different time types")
+    
+    try:
+        # Test that we can get age from different time properties
+        ctime_age = test_file.ctime.age
+        mtime_age = test_file.mtime.age
+        atime_age = test_file.atime.age
+        
+        assert isinstance(ctime_age, Age)
+        assert isinstance(mtime_age, Age)
+        assert isinstance(atime_age, Age)
+        
+        print(f"Creation time age: {ctime_age.days:.10f} days")
+        print(f"Modification time age: {mtime_age.days:.10f} days")
+        print(f"Access time age: {atime_age.days:.10f} days")
+        
+        print("✅ Different time types tests passed")
+        
+    finally:
+        # Clean up
+        if test_file.exists():
+            test_file.unlink()
+
+
+if __name__ == "__main__":
+    test_age_properties()
+    test_age_with_custom_base_time()
+    test_age_time_progression()
+    test_different_time_types()
+    print("\n✅ All age tests completed!")
