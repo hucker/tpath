@@ -9,10 +9,10 @@ Deprecated: Import from tpath package instead:
 """
 
 # Re-export everything for backward compatibility
-from .core import TPath, tpath
-from .age import Age
-from .size import Size
-from .time_property import Time
+from ._core import TPath, tpath
+from ._age import Age
+from ._size import Size
+from ._time import Time
 
 # For backward compatibility - keep old names available
 AgeProperty = Age

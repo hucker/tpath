@@ -14,10 +14,10 @@ Examples:
 """
 
 # Import all public classes and functions
-from .core import TPath, tpath
-from .age import Age
-from .size import Size
-from .time_property import Time
+from ._core import TPath, tpath
+from ._age import Age
+from ._size import Size
+from ._time import Time
 
 __version__ = "0.1.0"
 __author__ = "Your Name"

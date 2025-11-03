@@ -6,11 +6,10 @@ Main TPath class that extends pathlib.Path with age and size functionality.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional
 
-from .age import Age
-from .size import Size
-from .time_property import Time
+from ._age import Age
+from ._size import Size
+from ._time import Time
 
 
 class TPath(Path):
@@ -78,7 +77,7 @@ class TPath(Path):
 
 
 # Convenience functions
-def tpath(path: Union[str, Path], base_time: Optional[datetime] = None) -> TPath:
+def tpath(path: str | Path, base_time: datetime | None = None) -> TPath:
     """Create a TPath object."""
     new_path = TPath(path)
     if base_time:
