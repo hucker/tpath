@@ -5,6 +5,7 @@ Main TPath class that extends pathlib.Path with age and size functionality.
 """
 
 from datetime import datetime
+from functools import cached_property
 from pathlib import Path
 
 from ._age import Age
@@ -30,19 +31,20 @@ class TPath(Path):
     _base_time: datetime
     
     def __new__(cls, *args, **kwargs):
-        # Extract our custom arguments
-        base_time = kwargs.pop('base_time', None)
+        # Create the path instance - Path doesn't accept custom kwargs
+        self = super().__new__(cls, *args, **kwargs)
         
-        # Create the path instance
-        if args:
-            self = super().__new__(cls, *args, **kwargs)
-        else:
-            self = super().__new__(cls, **kwargs)
-        
-        # Set our custom attributes
-        object.__setattr__(self, '_base_time', base_time or datetime.now())
+        # Set our custom attributes with default value
+        object.__setattr__(self, '_base_time', datetime.now())
         
         return self
+    
+    @cached_property
+    def _cached_stat(self):
+        """Cache the stat result to avoid repeated filesystem calls."""
+        if not self.exists():
+            return None
+        return self.stat()
     
     @property
     def age(self) -> Age:
@@ -76,13 +78,4 @@ class TPath(Path):
         return new_path
 
 
-# Convenience functions
-def tpath(path: str | Path, base_time: datetime | None = None) -> TPath:
-    """Create a TPath object."""
-    new_path = TPath(path)
-    if base_time:
-        object.__setattr__(new_path, '_base_time', base_time)
-    return new_path
-
-
-__all__ = ['TPath', 'tpath']
+__all__ = ['TPath']

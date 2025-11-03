@@ -177,7 +177,7 @@ def test_integration_custom_base_time():
     # Test scenario: file management with custom reference time
     reference_time = datetime.now() - timedelta(hours=12)
     
-    test_file = TPath("base_time_test.txt", base_time=reference_time)
+    test_file = TPath("base_time_test.txt").with_base_time(reference_time)
     test_file.write_text("Testing custom base time scenarios")
     
     try:

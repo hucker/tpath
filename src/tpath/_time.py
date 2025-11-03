@@ -19,13 +19,23 @@ class Time:
         self.time_type = time_type
         self.base_time = base_time
         
+    def _get_stat(self):
+        """Get stat result, using cache if available."""
+        if hasattr(self.path, '_cached_stat'):
+            return self.path._cached_stat
+        else:
+            return self.path.stat() if self.path.exists() else None
+        
     @property
     def age(self) -> Age:
         """Get age property for this time type."""
         if not self.path.exists():
             return Age(self.path, time.time(), self.base_time)
         
-        stat = self.path.stat()
+        stat = self._get_stat()
+        if stat is None:
+            return Age(self.path, time.time(), self.base_time)
+            
         if self.time_type == 'ctime':
             timestamp = stat.st_ctime
         elif self.time_type == 'mtime':
@@ -43,7 +53,10 @@ class Time:
         if not self.path.exists():
             return 0
         
-        stat = self.path.stat()
+        stat = self._get_stat()
+        if stat is None:
+            return 0
+            
         if self.time_type == 'ctime':
             return stat.st_ctime
         elif self.time_type == 'mtime':

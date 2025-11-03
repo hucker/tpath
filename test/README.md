@@ -14,7 +14,6 @@ test/
 ├── test_time.py        # Tests for _time.py (Time properties)
 ├── test_integration.py # Integration tests (all modules working together)
 ├── run_all_tests.py    # Test runner for all modules
-├── test_tpath.py       # Original comprehensive test (legacy)
 └── README.md           # This file
 ```
 
@@ -32,11 +31,6 @@ python test/test_age.py         # Age calculation tests
 python test/test_size.py        # Size calculation tests
 python test/test_time.py        # Time property tests
 python test/test_integration.py # Integration tests
-```
-
-### Run Legacy Test
-```bash
-python test/test_tpath.py       # Original comprehensive test
 ```
 
 ## Test Categories

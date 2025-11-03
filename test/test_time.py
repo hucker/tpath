@@ -129,7 +129,7 @@ def test_time_with_custom_base():
     
     # Create a test file with custom base time
     yesterday = datetime.now() - timedelta(days=1)
-    test_file = TPath("test_base_time_file.txt", base_time=yesterday)
+    test_file = TPath("test_base_time_file.txt").with_base_time(yesterday)
     test_file.write_text("Testing custom base time")
     
     try:

@@ -22,9 +22,9 @@ def test_tpath_creation():
     assert isinstance(path1, TPath)
     assert str(path1) == "test_file.txt"
     
-    # Test creation with base_time
+    # Test creation with custom base_time using with_base_time method
     custom_time = datetime(2023, 1, 1)
-    path2 = TPath("test_file.txt", base_time=custom_time)
+    path2 = TPath("test_file.txt").with_base_time(custom_time)
     assert path2._base_time == custom_time
     
     print("✅ TPath creation tests passed")
@@ -53,24 +53,6 @@ def test_pathlib_compatibility():
     print(f"TPath suffix: {tpath_obj.suffix}")
     
     print("✅ Pathlib compatibility tests passed")
-
-
-def test_convenience_function():
-    """Test the tpath convenience function."""
-    print("Testing tpath convenience function...")
-    
-    from tpath import tpath
-    
-    # Test basic usage
-    path1 = tpath("test_file.txt")
-    assert isinstance(path1, TPath)
-    
-    # Test with base_time
-    custom_time = datetime(2023, 1, 1)
-    path2 = tpath("test_file.txt", base_time=custom_time)
-    assert path2._base_time == custom_time
-    
-    print("✅ Convenience function tests passed")
 
 
 def test_property_access():
@@ -111,6 +93,5 @@ def test_property_access():
 if __name__ == "__main__":
     test_tpath_creation()
     test_pathlib_compatibility()
-    test_convenience_function()
     test_property_access()
     print("\n✅ All core tests completed!")
