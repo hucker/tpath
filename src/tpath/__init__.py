@@ -10,7 +10,7 @@ Examples:
     >>> path = TPath("myfile.txt")
     >>> path.age.days
     >>> path.size.gb
-    >>> Size.fromstr("1.5GB")
+    >>> Size.parse("1.5GB")
 """
 
 import importlib
@@ -60,11 +60,13 @@ def _discover_and_import_modules():
             module = importlib.import_module(f".{module_name}", package=__name__)
 
             # If the module has __all__, expose those exports
-            if hasattr(module, '__all__'):
+            if hasattr(module, "__all__"):
                 module_all = module.__all__
                 if isinstance(module_all, list | tuple):
                     for export_name in module_all:
-                        if isinstance(export_name, str) and hasattr(module, export_name):
+                        if isinstance(export_name, str) and hasattr(
+                            module, export_name
+                        ):
                             # Add to global namespace
                             globals()[export_name] = getattr(module, export_name)
                             additional_exports.append(export_name)
