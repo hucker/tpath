@@ -38,8 +38,8 @@ For advanced users who want specific modules:
 # Import from specific modules
 from tpath.core import TPath, tpath
 from tpath.size import Size
-from tpath.age import AgeProperty
-from tpath.time_property import TimeProperty
+from tpath.age import Age
+from tpath.time_property import Time
 ```
 
 ### Backward compatibility
@@ -48,9 +48,9 @@ Existing code using the old import structure will continue to work:
 
 ```python
 # Still works (backward compatibility)
-from tpath.tpath import TPath, Size
-# or the old name for complete compatibility
-from tpath.tpath import SizeProperty  # alias for Size
+from tpath.tpath import TPath, Size, Age, Time
+# or the old names for complete compatibility
+from tpath.tpath import SizeProperty, AgeProperty, TimeProperty  # aliases
 ```
 
 ## Benefits of the New Structure
@@ -93,12 +93,12 @@ from tpath.tpath import SizeProperty  # alias for Size
 - Size string parsing (`fromstr` method)
 
 ### `age.py`
-- `AgeProperty` class
+- `Age` class (renamed from `AgeProperty` for brevity)
 - Age calculations in various time units
 - Time difference computations
 
 ### `time_property.py`
-- `TimeProperty` class
+- `Time` class (renamed from `TimeProperty` for brevity)
 - Handles different time types (ctime, mtime, atime)
 - Bridges between time types and age calculations
 
@@ -118,7 +118,7 @@ from tpath.tpath import SizeProperty  # alias for Size
 Use the clean package-level imports:
 
 ```python
-from tpath import TPath, Size
+from tpath import TPath, Size, Age, Time
 ```
 
 ### For Existing Projects

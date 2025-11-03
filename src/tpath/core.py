@@ -8,9 +8,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union, Optional
 
-from .age import AgeProperty
+from .age import Age
 from .size import Size
-from .time_property import TimeProperty
+from .time_property import Time
 
 
 class TPath(Path):
@@ -46,24 +46,24 @@ class TPath(Path):
         return self
     
     @property
-    def age(self) -> AgeProperty:
+    def age(self) -> Age:
         """Get age property based on creation time."""
-        return TimeProperty(self, 'ctime', self._base_time).age
+        return Time(self, 'ctime', self._base_time).age
     
     @property
-    def ctime(self) -> TimeProperty:
+    def ctime(self) -> Time:
         """Get creation time property."""
-        return TimeProperty(self, 'ctime', self._base_time)
+        return Time(self, 'ctime', self._base_time)
     
     @property
-    def mtime(self) -> TimeProperty:
+    def mtime(self) -> Time:
         """Get modification time property."""
-        return TimeProperty(self, 'mtime', self._base_time)
+        return Time(self, 'mtime', self._base_time)
     
     @property
-    def atime(self) -> TimeProperty:
+    def atime(self) -> Time:
         """Get access time property."""
-        return TimeProperty(self, 'atime', self._base_time)
+        return Time(self, 'atime', self._base_time)
     
     @property
     def size(self) -> Size:

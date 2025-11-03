@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-class AgeProperty:
+class Age:
     """Property class for handling file age operations."""
     
     def __init__(self, path: Path, timestamp: float, base_time: datetime):
@@ -55,4 +55,4 @@ class AgeProperty:
         return self.days / 365.25
 
 
-__all__ = ['AgeProperty']
+__all__ = ['Age']

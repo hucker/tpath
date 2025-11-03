@@ -15,9 +15,9 @@ Examples:
 
 # Import all public classes and functions
 from .core import TPath, tpath
-from .age import AgeProperty
+from .age import Age
 from .size import Size
-from .time_property import TimeProperty
+from .time_property import Time
 
 __version__ = "0.1.0"
 __author__ = "Your Name"
@@ -26,7 +26,7 @@ __author__ = "Your Name"
 __all__ = [
     'TPath',           # Main TPath class
     'tpath',           # Convenience function
-    'AgeProperty',     # Age calculation class
+    'Age',             # Age calculation class
     'Size',            # Size calculation class
-    'TimeProperty',    # Time property class
+    'Time',            # Time property class
 ]
