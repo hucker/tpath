@@ -1,9 +1,32 @@
 """
 TPath - A pathlib extension with time-based age and size utilities.
+
+This package provides enhanced pathlib functionality with lambda-based
+age and size operations. Users can import directly from tpath without
+needing to know the internal package structure.
+
+Examples:
+    >>> from tpath import TPath, SizeProperty
+    >>> path = TPath("myfile.txt")
+    >>> path.age.days
+    >>> path.size.gb
+    >>> SizeProperty.fromstr("1.5GB")
 """
 
-from .tpath import TPath, tpath, SizeProperty, AgeProperty, TimeProperty
+# Import all public classes and functions
+from .core import TPath, tpath
+from .age import AgeProperty
+from .size import SizeProperty
+from .time_property import TimeProperty
 
 __version__ = "0.1.0"
 __author__ = "Your Name"
-__all__ = ['TPath', 'tpath', 'SizeProperty', 'AgeProperty', 'TimeProperty']
+
+# Public API - users can import any of these directly
+__all__ = [
+    'TPath',           # Main TPath class
+    'tpath',           # Convenience function
+    'AgeProperty',     # Age calculation class
+    'SizeProperty',    # Size calculation class
+    'TimeProperty',    # Time property class
+]
