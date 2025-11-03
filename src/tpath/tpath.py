@@ -1,23 +1,14 @@
 """
 TPath - A pathlib extension with time-based age and size utilities using lambdas.
 
-This module provides backward compatibility by re-exporting all classes.
-New code should import directly from the tpath package.
-
-Deprecated: Import from tpath package instead:
-    from tpath import TPath, Size, Age, Time
+This module provides re-exports of all classes for convenience.
 """
 
-# Re-export everything for backward compatibility
+# Re-export everything for convenience
 from ._core import TPath, tpath
 from ._age import Age
 from ._size import Size
 from ._time import Time
 
-# For backward compatibility - keep old names available
-AgeProperty = Age
-SizeProperty = Size
-TimeProperty = Time
-
-# For backward compatibility and ease of import
-__all__ = ['TPath', 'tpath', 'Size', 'SizeProperty', 'Age', 'AgeProperty', 'Time', 'TimeProperty']
+# Public API
+__all__ = ['TPath', 'tpath', 'Size', 'Age', 'Time']

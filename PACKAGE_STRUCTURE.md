@@ -7,11 +7,11 @@ The TPath package has been refactored into separate modules for better maintaina
 ```
 src/tpath/
 ├── __init__.py          # Main package interface
-├── core.py              # TPath main class and tpath() function
-├── age.py               # AgeProperty class
-├── size.py              # SizeProperty class
-├── time_property.py     # TimeProperty class
-└── tpath.py            # Backward compatibility (re-exports)
+├── _core.py             # TPath main class and tpath() function
+├── _age.py              # Age class
+├── _size.py             # Size class
+├── _time.py             # Time class
+└── tpath.py            # Convenience re-exports
 ```
 
 ## Import Patterns
@@ -47,10 +47,8 @@ from tpath.time_property import Time
 Existing code using the old import structure will continue to work:
 
 ```python
-# Still works (backward compatibility)
+# Alternative: Import from convenience module
 from tpath.tpath import TPath, Size, Age, Time
-# or the old names for complete compatibility
-from tpath.tpath import SizeProperty, AgeProperty, TimeProperty  # aliases
 ```
 
 ## Benefits of the New Structure
@@ -87,18 +85,18 @@ from tpath.tpath import SizeProperty, AgeProperty, TimeProperty  # aliases
 - Core pathlib extension functionality
 - `tpath()` convenience function
 
-### `size.py` 
-- `Size` class (renamed from `SizeProperty` for brevity)
+### `_size.py` 
+- `Size` class for size calculations
 - Size calculations and unit conversions
 - Size string parsing (`fromstr` method)
 
-### `age.py`
-- `Age` class (renamed from `AgeProperty` for brevity)
+### `_age.py`
+- `Age` class for time calculations
 - Age calculations in various time units
 - Time difference computations
 
-### `time_property.py`
-- `Time` class (renamed from `TimeProperty` for brevity)
+### `_time.py`
+- `Time` class for time properties
 - Handles different time types (ctime, mtime, atime)
 - Bridges between time types and age calculations
 
