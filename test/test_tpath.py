@@ -10,7 +10,7 @@ from pathlib import Path
 # Add the src directory to the path so we can import tpath
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from tpath.tpath import TPath, SizeProperty
+from tpath.tpath import TPath, Size
 
 
 def test_basic_functionality():
@@ -67,7 +67,7 @@ def test_size_parsing():
     
     for size_str in test_cases:
         try:
-            bytes_value = SizeProperty.fromstr(size_str)
+            bytes_value = Size.fromstr(size_str)
             print(f"{size_str:>8} -> {bytes_value:>12} bytes")
         except ValueError as e:
             print(f"{size_str:>8} -> Error: {e}")

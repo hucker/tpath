@@ -6,17 +6,17 @@ age and size operations. Users can import directly from tpath without
 needing to know the internal package structure.
 
 Examples:
-    >>> from tpath import TPath, SizeProperty
+    >>> from tpath import TPath, Size
     >>> path = TPath("myfile.txt")
     >>> path.age.days
     >>> path.size.gb
-    >>> SizeProperty.fromstr("1.5GB")
+    >>> Size.fromstr("1.5GB")
 """
 
 # Import all public classes and functions
 from .core import TPath, tpath
 from .age import AgeProperty
-from .size import SizeProperty
+from .size import Size
 from .time_property import TimeProperty
 
 __version__ = "0.1.0"
@@ -27,6 +27,6 @@ __all__ = [
     'TPath',           # Main TPath class
     'tpath',           # Convenience function
     'AgeProperty',     # Age calculation class
-    'SizeProperty',    # Size calculation class
+    'Size',            # Size calculation class
     'TimeProperty',    # Time property class
 ]

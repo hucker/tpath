@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Union, Optional
 
 from .age import AgeProperty
-from .size import SizeProperty
+from .size import Size
 from .time_property import TimeProperty
 
 
@@ -66,9 +66,9 @@ class TPath(Path):
         return TimeProperty(self, 'atime', self._base_time)
     
     @property
-    def size(self) -> SizeProperty:
+    def size(self) -> Size:
         """Get size property."""
-        return SizeProperty(self)
+        return Size(self)
     
     def with_base_time(self, base_time: datetime) -> 'TPath':
         """Create a new TPath with a different base time for age calculations."""

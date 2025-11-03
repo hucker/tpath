@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from tpath import TPath, SizeProperty
+from tpath import TPath, Size
 
 def demo_tpath_features():
     """Demonstrate key TPath features that replace pathql functionality."""
@@ -60,7 +60,7 @@ def demo_tpath_features():
     print("\n5. Size string parsing (pathql-compatible):")
     size_strings = ["1KB", "1KiB", "2.5MB", "1.5GiB"]
     for size_str in size_strings:
-        bytes_val = SizeProperty.fromstr(size_str)
+        bytes_val = Size.fromstr(size_str)
         print(f"   '{size_str}' -> {bytes_val:,} bytes")
     
     print("\n6. Custom base time (age relative to other dates):")

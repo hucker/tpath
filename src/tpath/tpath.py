@@ -5,14 +5,17 @@ This module provides backward compatibility by re-exporting all classes.
 New code should import directly from the tpath package.
 
 Deprecated: Import from tpath package instead:
-    from tpath import TPath, SizeProperty, AgeProperty, TimeProperty
+    from tpath import TPath, Size, AgeProperty, TimeProperty
 """
 
 # Re-export everything for backward compatibility
 from .core import TPath, tpath
 from .age import AgeProperty
-from .size import SizeProperty
+from .size import Size
 from .time_property import TimeProperty
 
+# For backward compatibility - keep old name available
+SizeProperty = Size
+
 # For backward compatibility and ease of import
-__all__ = ['TPath', 'tpath', 'SizeProperty', 'AgeProperty', 'TimeProperty']
+__all__ = ['TPath', 'tpath', 'Size', 'SizeProperty', 'AgeProperty', 'TimeProperty']

@@ -6,7 +6,7 @@ file age and size operations.
 """
 
 from datetime import datetime, timedelta
-from src.tpath import TPath, SizeProperty
+from src.tpath import TPath, Size
 
 def main():
     print("=== TPath Example Usage ===\n")
@@ -55,7 +55,7 @@ def main():
     print("\n6. Size String Parsing (like pathql):")
     size_examples = ["1KB", "2.5MB", "1.5GiB", "0.1TB"]
     for size_str in size_examples:
-        bytes_value = SizeProperty.fromstr(size_str)
+        bytes_value = Size.fromstr(size_str)
         print(f"   '{size_str}' = {bytes_value:,} bytes")
     
     print("\n7. Practical Examples:")

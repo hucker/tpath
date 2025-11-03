@@ -22,11 +22,11 @@ Users should import directly from the main package without needing to know the i
 
 ```python
 # Recommended approach - clean and simple
-from tpath import TPath, SizeProperty, tpath
+from tpath import TPath, Size, tpath
 
 # Create paths and use functionality
 path = TPath("myfile.txt")
-size_bytes = SizeProperty.fromstr("1.5GB")
+size_bytes = Size.fromstr("1.5GB")
 convenience_path = tpath("otherfile.txt")
 ```
 
@@ -37,7 +37,7 @@ For advanced users who want specific modules:
 ```python
 # Import from specific modules
 from tpath.core import TPath, tpath
-from tpath.size import SizeProperty
+from tpath.size import Size
 from tpath.age import AgeProperty
 from tpath.time_property import TimeProperty
 ```
@@ -48,7 +48,9 @@ Existing code using the old import structure will continue to work:
 
 ```python
 # Still works (backward compatibility)
-from tpath.tpath import TPath, SizeProperty
+from tpath.tpath import TPath, Size
+# or the old name for complete compatibility
+from tpath.tpath import SizeProperty  # alias for Size
 ```
 
 ## Benefits of the New Structure
@@ -86,7 +88,7 @@ from tpath.tpath import TPath, SizeProperty
 - `tpath()` convenience function
 
 ### `size.py` 
-- `SizeProperty` class
+- `Size` class (renamed from `SizeProperty` for brevity)
 - Size calculations and unit conversions
 - Size string parsing (`fromstr` method)
 
@@ -116,7 +118,7 @@ from tpath.tpath import TPath, SizeProperty
 Use the clean package-level imports:
 
 ```python
-from tpath import TPath, SizeProperty
+from tpath import TPath, Size
 ```
 
 ### For Existing Projects
@@ -129,7 +131,7 @@ The `tpath.py` module may be deprecated in future major versions, but will be ma
 
 ```python
 # Clean imports
-from tpath import TPath, SizeProperty
+from tpath import TPath, Size
 
 # Use as before
 path = TPath("example.txt")
@@ -137,7 +139,7 @@ print(f"Size: {path.size.mb:.2f} MB")
 print(f"Age: {path.age.hours:.2f} hours")
 
 # Size parsing
-bytes_val = SizeProperty.fromstr("2.5GB")
+bytes_val = Size.fromstr("2.5GB")
 print(f"Parsed size: {bytes_val:,} bytes")
 ```
 

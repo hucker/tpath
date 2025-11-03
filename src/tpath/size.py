@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 
-class SizeProperty:
+class Size:
     """Property class for handling file size operations with various units."""
     
     def __init__(self, path: Path):
@@ -104,4 +104,4 @@ class SizeProperty:
         return int(value * binary_units[unit])
 
 
-__all__ = ['SizeProperty']
+__all__ = ['Size']
