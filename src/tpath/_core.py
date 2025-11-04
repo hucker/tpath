@@ -4,9 +4,13 @@ Core TPath implementation.
 Main TPath class that extends pathlib.Path with age and size functionality.
 """
 
+import os
+import platform
+import stat
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
+from typing import Any
 
 from ._age import Age
 from ._size import Size
@@ -73,7 +77,7 @@ class TPath(Path):
 
     _base_time: datetime
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any):
         # Create the path instance - Path doesn't accept custom kwargs
         self = super().__new__(cls, *args, **kwargs)
 
@@ -89,7 +93,7 @@ class TPath(Path):
     # the same cached result, preventing race conditions and ensuring consistent analysis.
 
     @cached_property
-    def _stat_cache(self):
+    def _stat_cache(self) -> Any:
         """Cache the stat result to avoid repeated filesystem calls."""
         try:
             original_stat = super().stat()
@@ -98,7 +102,7 @@ class TPath(Path):
         except (OSError, FileNotFoundError):
             return None
 
-    def _fix_ctime_in_stat(self, stat_result):
+    def _fix_ctime_in_stat(self, stat_result: os.stat_result) -> Any:
         """Fix stat result to use st_birthtime for st_ctime when available.
 
         This ensures that when code asks for st_ctime (creation time), it gets the
@@ -107,13 +111,14 @@ class TPath(Path):
         if hasattr(stat_result, "st_birthtime") and hasattr(stat_result, "st_ctime"):
             # Create a wrapper that replaces st_ctime with st_birthtime
             class StatResultWithFixedCtime:
-                def __init__(self, original_stat):
+                def __init__(self, original_stat: os.stat_result):
                     self._original = original_stat
 
-                def __getattr__(self, name):
+                def __getattr__(self, name: str):
                     if name == "st_ctime":
                         # Return birth time instead of change time for st_ctime
-                        return self._original.st_birthtime
+                        # We know st_birthtime exists because we checked above
+                        return getattr(self._original, "st_birthtime", None)
                     return getattr(self._original, name)
 
                 # Forward common operations
@@ -128,7 +133,7 @@ class TPath(Path):
             # No st_birthtime available, return original stat
             return stat_result
 
-    def stat(self, *, follow_symlinks: bool = True):
+    def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
         """Override stat() to use cached result when possible."""
         if not follow_symlinks:
             # For symlinks with follow_symlinks=False, don't use cache
@@ -180,6 +185,125 @@ class TPath(Path):
     def size(self) -> Size:
         """Get size property."""
         return Size(self)
+
+    # File Access Properties
+    # ======================
+    # These properties use the cached stat result for consistent permission checking
+
+    @property
+    def readable(self) -> bool:
+        """True if the file has read permission."""
+        return os.access(self, os.R_OK)
+
+    @property
+    def writable(self) -> bool:
+        """True if the file has write permission."""
+        return os.access(self, os.W_OK)
+
+    @property
+    def executable(self) -> bool:
+        """True if the file has execute permission.
+
+        Note: On Windows, this always returns True for existing files
+        since Windows handles executable permissions differently.
+        """
+        # On Windows, executable permission is handled differently
+        if platform.system() == "Windows":
+            # Check if file exists first
+            return os.access(self, os.F_OK)
+        return os.access(self, os.X_OK)
+
+    @property
+    def read_only(self) -> bool:
+        """True if the file is readable but not writable."""
+        return self.readable and not self.writable
+
+    @property
+    def write_only(self) -> bool:
+        """True if the file is writable but not readable."""
+        return self.writable and not self.readable
+
+    @property
+    def read_write(self) -> bool:
+        """True if the file is both readable and writable."""
+        return self.readable and self.writable
+
+    def access_mode(self, spec: str) -> bool:
+        """Check if file matches the specified access mode.
+
+        Args:
+            spec: Access mode specification. Supported formats:
+                - "R" or "r" - readable
+                - "W" or "w" - writable
+                - "X" or "x" - executable
+                - "RO" or "ro" - read-only (readable but not writable)
+                - "WO" or "wo" - write-only (writable but not readable)
+                - "RW" or "rw" - read-write (both readable and writable)
+                - "RWX" or "rwx" - all permissions
+
+        Returns:
+            bool: True if file matches the specified mode
+
+        Examples:
+            file.access_mode("RO")    # Read-only check
+            file.access_mode("RW")    # Read-write check
+            file.access_mode("X")     # Executable check
+        """
+        spec = spec.upper().strip()
+
+        if spec in ("R", "READ"):
+            return self.readable
+        elif spec in ("W", "WRITE"):
+            return self.writable
+        elif spec in ("X", "EXEC", "EXECUTABLE"):
+            return self.executable
+        elif spec in ("RO", "READONLY", "READ_ONLY"):
+            return self.read_only
+        elif spec in ("WO", "WRITEONLY", "WRITE_ONLY"):
+            return self.write_only
+        elif spec in ("RW", "READWRITE", "READ_WRITE"):
+            return self.read_write
+        elif spec in ("RWX", "ALL"):
+            return self.readable and self.writable and self.executable
+        else:
+            valid_specs = ["R", "W", "X", "RO", "WO", "RW", "RWX"]
+            raise ValueError(
+                f"Invalid mode specification: '{spec}'. Valid options: {valid_specs}"
+            )
+
+
+
+    @property
+    def owner_readable(self) -> bool:
+        """True if the owner has read permission."""
+        try:
+            stat_result = self.stat()
+            return bool(stat_result.st_mode & stat.S_IRUSR)
+        except (OSError, FileNotFoundError):
+            return False
+
+    @property
+    def owner_writable(self) -> bool:
+        """True if the owner has write permission."""
+        try:
+            stat_result = self.stat()
+            return bool(stat_result.st_mode & stat.S_IWUSR)
+        except (OSError, FileNotFoundError):
+            return False
+
+    @property
+    def owner_executable(self) -> bool:
+        """True if the owner has execute permission."""
+        try:
+            stat_result = self.stat()
+            # On Windows, always return True for existing files
+            if platform.system() == "Windows":
+                return True
+            return bool(stat_result.st_mode & stat.S_IXUSR)
+        except (OSError, FileNotFoundError):
+            return False
+
+
 
     def with_base_time(self, base_time: datetime) -> "TPath":
         """Create a new TPath with a different base time for age calculations."""

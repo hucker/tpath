@@ -20,6 +20,11 @@ class Size:
         return self.path.stat().st_size if self.path.exists() else 0
 
     @property
+    def b(self) -> int:
+        """Get file size in bytes (alias for .bytes)."""
+        return self.bytes
+
+    @property
     def kb(self) -> float:
         """Get file size in kilobytes (1000 bytes)."""
         return self.bytes / 1000

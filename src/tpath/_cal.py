@@ -14,20 +14,20 @@ if TYPE_CHECKING:
 
 def normalize_weekday(day_spec: str) -> int:
     """Normalize various day-of-week specifications to Python weekday numbers.
-    
+
     Args:
         day_spec: Day specification as a string
-        
+
     Returns:
         int: Python weekday number (0=Monday, 1=Tuesday, ..., 6=Sunday)
-        
+
     Accepts:
         - Full names: 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
         - 3-letter abbrev: 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'
         - 2-letter abbrev: 'mo', 'tu', 'we', 'th', 'fr', 'sa', 'su'
         - Pandas style: 'w-mon', 'w-tue', etc.
         - All case insensitive
-        
+
     Examples:
         normalize_weekday('monday') -> 0
         normalize_weekday('MON') -> 0
@@ -35,42 +35,44 @@ def normalize_weekday(day_spec: str) -> int:
         normalize_weekday('thu') -> 3
     """
     day_spec = str(day_spec).lower().strip()
-    
+
     # Remove pandas-style prefix
-    if day_spec.startswith('w-'):
+    if day_spec.startswith("w-"):
         day_spec = day_spec[2:]
-    
+
     # Full day names
     day_names = {
-        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-        'friday': 4, 'saturday': 5, 'sunday': 6
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6,
     }
-    
+
     # 3-letter abbreviations
-    day_abbrev3 = {
-        'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3,
-        'fri': 4, 'sat': 5, 'sun': 6
-    }
-    
+    day_abbrev3 = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
+
     # 2-letter abbreviations
-    day_abbrev2 = {
-        'mo': 0, 'tu': 1, 'we': 2, 'th': 3,
-        'fr': 4, 'sa': 5, 'su': 6
-    }
-    
+    day_abbrev2 = {"mo": 0, "tu": 1, "we": 2, "th": 3, "fr": 4, "sa": 5, "su": 6}
+
     # Check all mappings
     for mapping in [day_names, day_abbrev3, day_abbrev2]:
         if day_spec in mapping:
             return mapping[day_spec]
-    
+
     # Generate helpful error message
     valid_examples = [
         "Full: 'monday', 'sunday'",
         "3-letter: 'mon', 'sun', 'tue', 'wed', 'thu', 'fri', 'sat'",
         "2-letter: 'mo', 'su', 'tu', 'we', 'th', 'fr', 'sa'",
-        "Pandas: 'w-mon', 'w-sun'"
+        "Pandas: 'w-mon', 'w-sun'",
     ]
-    raise ValueError(f"Invalid day specification: '{day_spec}'. Valid formats:\n" + "\n".join(f"  • {ex}" for ex in valid_examples))
+    raise ValueError(
+        f"Invalid day specification: '{day_spec}'. Valid formats:\n"
+        + "\n".join(f"  • {ex}" for ex in valid_examples)
+    )
 
 
 class Cal:
@@ -105,7 +107,7 @@ class Cal:
         # Calculate the time window boundaries
         start_time = self.time.base_time + timedelta(minutes=start)
         start_minute = start_time.replace(second=0, microsecond=0)
-        
+
         end_time = self.time.base_time + timedelta(minutes=end)
         end_minute = end_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
 
@@ -135,9 +137,11 @@ class Cal:
         # Calculate the time window boundaries
         start_time = self.time.base_time + timedelta(hours=start)
         start_hour = start_time.replace(minute=0, second=0, microsecond=0)
-        
+
         end_time = self.time.base_time + timedelta(hours=end)
-        end_hour = end_time.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        end_hour = end_time.replace(minute=0, second=0, microsecond=0) + timedelta(
+            hours=1
+        )
 
         return start_hour <= file_time < end_hour
 
@@ -304,7 +308,9 @@ class Cal:
 
         return start_year <= file_year <= end_year
 
-    def win_weeks(self, start: int = 0, end: int | None = None, week_start: str = 'monday') -> bool:
+    def win_weeks(
+        self, start: int = 0, end: int | None = None, week_start: str = "monday"
+    ) -> bool:
         """True if file timestamp falls within the week window(s) from start to end.
 
         Args:
@@ -341,7 +347,9 @@ class Cal:
         # Calculate week boundaries
         start_week_start = current_week_start + timedelta(weeks=start)
         end_week_start = current_week_start + timedelta(weeks=end)
-        end_week_end = end_week_start + timedelta(days=6)  # End of week (6 days after start)
+        end_week_end = end_week_start + timedelta(
+            days=6
+        )  # End of week (6 days after start)
 
         return start_week_start <= file_date <= end_week_end
 

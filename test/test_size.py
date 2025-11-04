@@ -28,6 +28,12 @@ def test_size_properties():
             size.bytes, int
         ), f"Expected size.bytes to be int, got {type(size.bytes)}"
         assert size.bytes > 0, f"Expected size.bytes to be positive, got {size.bytes}"
+
+        # Test .b alias for .bytes
+        assert isinstance(size.b, int), f"Expected size.b to be int, got {type(size.b)}"
+        assert (
+            size.b == size.bytes
+        ), f"Expected size.b ({size.b}) to equal size.bytes ({size.bytes})"
         assert (
             size.bytes == len(content.encode("utf-8"))
         ), f"Expected size.bytes ({size.bytes}) to equal content length ({len(content.encode('utf-8'))})"

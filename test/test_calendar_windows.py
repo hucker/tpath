@@ -38,13 +38,13 @@ def test_method_existence():
             test_file.write_text("Testing")
 
             # Check methods exist on cal property
-            assert hasattr(test_file.mtime.cal, 'win_days')
-            assert hasattr(test_file.mtime.cal, 'win_months')
-            assert hasattr(test_file.mtime.cal, 'win_quarters')
-            assert hasattr(test_file.mtime.cal, 'win_years')
-            assert hasattr(test_file.mtime.cal, 'win_hours')
-            assert hasattr(test_file.mtime.cal, 'win_minutes')
-            assert hasattr(test_file.mtime.cal, 'win_weeks')
+            assert hasattr(test_file.mtime.cal, "win_days")
+            assert hasattr(test_file.mtime.cal, "win_months")
+            assert hasattr(test_file.mtime.cal, "win_quarters")
+            assert hasattr(test_file.mtime.cal, "win_years")
+            assert hasattr(test_file.mtime.cal, "win_hours")
+            assert hasattr(test_file.mtime.cal, "win_minutes")
+            assert hasattr(test_file.mtime.cal, "win_weeks")
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -60,9 +60,9 @@ def test_aliases():
             test_file.write_text("Testing")
 
             # Check aliases exist on cal property
-            assert hasattr(test_file.create.cal, 'win_days')
-            assert hasattr(test_file.modify.cal, 'win_days')
-            assert hasattr(test_file.access.cal, 'win_days')
+            assert hasattr(test_file.create.cal, "win_days")
+            assert hasattr(test_file.modify.cal, "win_days")
+            assert hasattr(test_file.access.cal, "win_days")
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -78,16 +78,22 @@ def test_range_functionality():
             test_file.write_text("Testing")
 
             # Test ranges that include current time
-            assert test_file.mtime.cal.win_days(-7, 0)    # Last 7 days through today
-            assert test_file.mtime.cal.win_months(-6, 0)  # Last 6 months through this month
-            assert test_file.mtime.cal.win_years(-2, 0)   # Last 2 years through this year
-            assert test_file.mtime.cal.win_weeks(-4, 0)   # Last 4 weeks through this week
+            assert test_file.mtime.cal.win_days(-7, 0)  # Last 7 days through today
+            assert test_file.mtime.cal.win_months(
+                -6, 0
+            )  # Last 6 months through this month
+            assert test_file.mtime.cal.win_years(
+                -2, 0
+            )  # Last 2 years through this year
+            assert test_file.mtime.cal.win_weeks(
+                -4, 0
+            )  # Last 4 weeks through this week
 
             # Test parameter order normalization - these should be equivalent
             result1 = test_file.mtime.cal.win_days(-7, 0)
             result2 = test_file.mtime.cal.win_days(0, -7)
             assert result1 == result2, "Range parameter order should be normalized"
-            
+
             # Test weeks parameter order too
             result3 = test_file.mtime.cal.win_weeks(-2, 0)
             result4 = test_file.mtime.cal.win_weeks(0, -2)

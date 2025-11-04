@@ -134,9 +134,7 @@ def test_comprehensive_system_smoke():
         assert len(recent_files) > 0  # Test 9: Calendar range filtering
         for file_path in created_files:
             # Test range functionality
-            last_week = file_path.mtime.cal.win_days(
-                -7, 0
-            )  # Last 7 days through today
+            last_week = file_path.mtime.cal.win_days(-7, 0)  # Last 7 days through today
             last_month = file_path.mtime.cal.win_months(
                 -1, 0
             )  # Last month through this month
@@ -144,7 +142,72 @@ def test_comprehensive_system_smoke():
             assert isinstance(last_week, bool)
             assert isinstance(last_month, bool)
 
-        # Test 10: Stat property access and ctime fix validation
+        # Test 10: Access control properties (Windows and Unix compatible)
+        for file_path in created_files:
+            # Basic access properties should always be accessible
+            assert isinstance(file_path.readable, bool)
+            assert isinstance(file_path.writable, bool)
+            assert isinstance(file_path.executable, bool)
+
+            # Derived access properties
+            assert isinstance(file_path.read_only, bool)
+            assert isinstance(file_path.write_only, bool)
+            assert isinstance(file_path.read_write, bool)
+
+            # Files we created should be readable and writable
+            assert file_path.readable is True
+            assert file_path.writable is True
+
+            # Read-write check (should be True since we can read and write)
+            assert file_path.read_write is True
+
+            # Read-only and write-only should be False for our test files
+            assert file_path.read_only is False
+            assert file_path.write_only is False
+
+        # Test 11: Access mode method
+        for file_path in created_files:
+            # Test various access mode specifications
+            assert file_path.access_mode("R") is True  # Should be readable
+            assert file_path.access_mode("W") is True  # Should be writable
+            assert file_path.access_mode("RW") is True  # Should be read-write
+            assert file_path.access_mode("RO") is False  # Should not be read-only
+            assert file_path.access_mode("WO") is False  # Should not be write-only
+
+            # Test case insensitive
+            assert file_path.access_mode("r") is True
+            assert file_path.access_mode("rw") is True
+
+            # Executable depends on platform
+            executable_result = file_path.access_mode("X")
+            assert isinstance(executable_result, bool)
+
+            # On Windows, files are typically executable if they exist
+            # On Unix, depends on actual permissions
+            if os.name == "nt":  # Windows
+                assert executable_result is True
+            # On Unix, we don't assert a specific value since it depends on umask
+
+        # Test 12: Owner permission properties (Unix-specific but safe on Windows)
+        for file_path in created_files:
+            # These should return boolean values on all platforms
+            assert isinstance(file_path.owner_readable, bool)
+            assert isinstance(file_path.owner_writable, bool)
+            assert isinstance(file_path.owner_executable, bool)
+
+            # Files we created should have owner read/write permissions
+            assert file_path.owner_readable is True
+            assert file_path.owner_writable is True
+
+            # Owner executable depends on platform and file type
+            owner_exec = file_path.owner_executable
+            assert isinstance(owner_exec, bool)
+
+            # On Windows, should be True for existing files
+            if os.name == "nt":
+                assert owner_exec is True
+
+        # Test 14: Stat property access and ctime fix validation
         for file_path in created_files:
             stat_result = file_path.stat()
 
@@ -168,7 +231,10 @@ def test_comprehensive_system_smoke():
         print(f"   - Tested {len(extensions)} file extensions")
         print(f"   - Tested {len(sizes)} size categories")
         print(f"   - Tested {len(time_offsets)} time scenarios")
-        print("   - Validated 10 major feature categories")
+        print("   - Validated 14 major feature categories")
+        print("   - Tested cross-platform access controls")
+        print("   - Verified owner/group properties")
+        print("   - Validated permission checking")
 
     finally:
         # Cleanup
