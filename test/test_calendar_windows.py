@@ -17,10 +17,12 @@ def test_calendar_basics():
             assert test_file.mtime.cal.win_months(0)
             assert test_file.mtime.cal.win_quarters(0)
             assert test_file.mtime.cal.win_years(0)
+            assert test_file.mtime.cal.win_weeks(0)  # This week
 
             # File should not be modified in the past
             assert not test_file.mtime.cal.win_days(-1)  # Yesterday
             assert not test_file.mtime.cal.win_months(-1)  # Last month
+            assert not test_file.mtime.cal.win_weeks(-1)  # Last week
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -42,6 +44,7 @@ def test_method_existence():
             assert hasattr(test_file.mtime.cal, 'win_years')
             assert hasattr(test_file.mtime.cal, 'win_hours')
             assert hasattr(test_file.mtime.cal, 'win_minutes')
+            assert hasattr(test_file.mtime.cal, 'win_weeks')
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -78,11 +81,17 @@ def test_range_functionality():
             assert test_file.mtime.cal.win_days(-7, 0)    # Last 7 days through today
             assert test_file.mtime.cal.win_months(-6, 0)  # Last 6 months through this month
             assert test_file.mtime.cal.win_years(-2, 0)   # Last 2 years through this year
+            assert test_file.mtime.cal.win_weeks(-4, 0)   # Last 4 weeks through this week
 
             # Test parameter order normalization - these should be equivalent
             result1 = test_file.mtime.cal.win_days(-7, 0)
             result2 = test_file.mtime.cal.win_days(0, -7)
             assert result1 == result2, "Range parameter order should be normalized"
+            
+            # Test weeks parameter order too
+            result3 = test_file.mtime.cal.win_weeks(-2, 0)
+            result4 = test_file.mtime.cal.win_weeks(0, -2)
+            assert result3 == result4, "Week range parameter order should be normalized"
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -104,10 +113,12 @@ def test_return_types():
             assert isinstance(test_file.mtime.cal.win_years(0), bool)
             assert isinstance(test_file.mtime.cal.win_hours(0), bool)
             assert isinstance(test_file.mtime.cal.win_minutes(0), bool)
+            assert isinstance(test_file.mtime.cal.win_weeks(0), bool)
 
             # Range methods should also return booleans
             assert isinstance(test_file.mtime.cal.win_days(-7, 0), bool)
             assert isinstance(test_file.mtime.cal.win_months(-6, -1), bool)
+            assert isinstance(test_file.mtime.cal.win_weeks(-2, 0), bool)
 
         finally:
             test_file.unlink(missing_ok=True)
