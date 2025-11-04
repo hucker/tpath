@@ -67,6 +67,21 @@ class TPath(Path):
         return Time(self, "atime", self._base_time)
 
     @property
+    def create(self) -> Time:
+        """Get creation time property (alias for ctime)."""
+        return Time(self, "create", self._base_time)
+
+    @property
+    def modify(self) -> Time:
+        """Get modification time property (alias for mtime)."""
+        return Time(self, "modify", self._base_time)
+
+    @property
+    def access(self) -> Time:
+        """Get access time property (alias for atime)."""
+        return Time(self, "access", self._base_time)
+
+    @property
     def size(self) -> Size:
         """Get size property."""
         return Size(self)

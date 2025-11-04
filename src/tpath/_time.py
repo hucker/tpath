@@ -7,17 +7,34 @@ Handles different time types (ctime, mtime, atime) with age calculation.
 import time
 from datetime import datetime as dt
 from pathlib import Path
+from typing import Literal
 
 from ._age import Age
+
+TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
 
 class Time:
     """Property class for handling different time types (ctime, mtime, atime) with age calculation."""
 
-    def __init__(self, path: Path, time_type: str, base_time: dt):
+    def __init__(self, path: Path, time_type: TimeType, base_time: dt):
         self.path = path
-        self.time_type = time_type
+        # Normalize time_type aliases to standard names
+        self.time_type = self._normalize_time_type(time_type)
         self.base_time = base_time
+
+    @staticmethod
+    def _normalize_time_type(time_type: TimeType) -> Literal["ctime", "mtime", "atime"]:
+        """Normalize time_type aliases to standard names."""
+        if time_type in ("create", "ctime"):
+            return "ctime"
+        elif time_type in ("modify", "mtime"):
+            return "mtime"
+        elif time_type in ("access", "atime"):
+            return "atime"
+        else:
+            # This should never happen with proper typing, but provide a fallback
+            return "ctime"
 
     def _get_stat(self):
         """Get stat result, using cache if available."""
@@ -110,4 +127,4 @@ class Time:
         raise ValueError(f"Unable to parse time string: {time_str}")
 
 
-__all__ = ["Time"]
+__all__ = ["Time", "TimeType"]

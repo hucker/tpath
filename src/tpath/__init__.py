@@ -23,7 +23,7 @@ __author__ = "Chuck Bass"
 from ._age import Age
 from ._core import TPath
 from ._size import Size
-from ._time import Time
+from ._time import Time, TimeType
 
 # Base __all__ with core exports
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     "Age",
     "Size",
     "Time",
+    "TimeType",
 ]
 
 
