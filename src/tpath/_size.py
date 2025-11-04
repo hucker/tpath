@@ -17,12 +17,7 @@ class Size:
     @property
     def bytes(self) -> int:
         """Get file size in bytes."""
-        # Use cached stat if available (TPath instance), otherwise use regular stat
-        if hasattr(self.path, "_cached_stat"):
-            cached_stat = self.path._cached_stat
-            return cached_stat.st_size if cached_stat else 0
-        else:
-            return self.path.stat().st_size if self.path.exists() else 0
+        return self.path.stat().st_size if self.path.exists() else 0
 
     @property
     def kb(self) -> float:

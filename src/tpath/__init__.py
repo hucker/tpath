@@ -21,6 +21,7 @@ __author__ = "Chuck Bass"
 
 # Core exports - always available
 from ._age import Age
+from ._cal import Calendar
 from ._core import TPath
 from ._size import Size
 from ._time import Time, TimeType
@@ -29,6 +30,7 @@ from ._time import Time, TimeType
 __all__ = [
     "TPath",
     "Age",
+    "Calendar",
     "Size",
     "Time",
     "TimeType",
@@ -44,7 +46,7 @@ def _discover_and_import_modules():
     additional_exports = []
 
     # Get list of existing core modules to avoid re-importing
-    core_modules = {"_age", "_core", "_size", "_time"}
+    core_modules = {"_age", "_cal", "_core", "_size", "_time"}
 
     for py_file in package_dir.glob("_*.py"):
         if py_file.name == "__init__.py":

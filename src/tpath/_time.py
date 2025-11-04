@@ -37,11 +37,8 @@ class Time:
             return "ctime"
 
     def _get_stat(self):
-        """Get stat result, using cache if available."""
-        if hasattr(self.path, "_cached_stat"):
-            return self.path._cached_stat
-        else:
-            return self.path.stat() if self.path.exists() else None
+        """Get stat result."""
+        return self.path.stat()
 
     @property
     def age(self) -> Age:
@@ -50,9 +47,7 @@ class Time:
             return Age(self.path, time.time(), self.base_time)
 
         stat = self._get_stat()
-        if stat is None:
-            return Age(self.path, time.time(), self.base_time)
-
+        
         if self.time_type == "ctime":
             timestamp = stat.st_ctime
         elif self.time_type == "mtime":
@@ -71,9 +66,7 @@ class Time:
             return 0
 
         stat = self._get_stat()
-        if stat is None:
-            return 0
-
+        
         if self.time_type == "ctime":
             return stat.st_ctime
         elif self.time_type == "mtime":
@@ -125,6 +118,12 @@ class Time:
                 continue
 
         raise ValueError(f"Unable to parse time string: {time_str}")
+
+    @property
+    def calendar(self):
+        """Get calendar filtering functionality for this time object."""
+        from ._cal import Calendar
+        return Calendar(self)
 
 
 __all__ = ["Time", "TimeType"]
