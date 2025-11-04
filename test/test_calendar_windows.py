@@ -13,14 +13,14 @@ def test_calendar_basics():
             test_file.write_text("Testing")
 
             # File should be modified today
-            assert test_file.mtime.calendar.in_days(0)
-            assert test_file.mtime.calendar.in_months(0)
-            assert test_file.mtime.calendar.in_quarters(0)
-            assert test_file.mtime.calendar.in_years(0)
+            assert test_file.mtime.cal.win_days(0)
+            assert test_file.mtime.cal.win_months(0)
+            assert test_file.mtime.cal.win_quarters(0)
+            assert test_file.mtime.cal.win_years(0)
 
             # File should not be modified in the past
-            assert not test_file.mtime.calendar.in_days(1)
-            assert not test_file.mtime.calendar.in_months(1)
+            assert not test_file.mtime.cal.win_days(-1)  # Yesterday
+            assert not test_file.mtime.cal.win_months(-1)  # Last month
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -35,13 +35,13 @@ def test_method_existence():
         try:
             test_file.write_text("Testing")
 
-            # Check methods exist on calendar property
-            assert hasattr(test_file.mtime.calendar, 'in_days')
-            assert hasattr(test_file.mtime.calendar, 'in_months')
-            assert hasattr(test_file.mtime.calendar, 'in_quarters')
-            assert hasattr(test_file.mtime.calendar, 'in_years')
-            assert hasattr(test_file.mtime.calendar, 'in_hours')
-            assert hasattr(test_file.mtime.calendar, 'in_minutes')
+            # Check methods exist on cal property
+            assert hasattr(test_file.mtime.cal, 'win_days')
+            assert hasattr(test_file.mtime.cal, 'win_months')
+            assert hasattr(test_file.mtime.cal, 'win_quarters')
+            assert hasattr(test_file.mtime.cal, 'win_years')
+            assert hasattr(test_file.mtime.cal, 'win_hours')
+            assert hasattr(test_file.mtime.cal, 'win_minutes')
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -56,10 +56,10 @@ def test_aliases():
         try:
             test_file.write_text("Testing")
 
-            # Check aliases exist on calendar property
-            assert hasattr(test_file.create.calendar, 'in_days')
-            assert hasattr(test_file.modify.calendar, 'in_days')
-            assert hasattr(test_file.access.calendar, 'in_days')
+            # Check aliases exist on cal property
+            assert hasattr(test_file.create.cal, 'win_days')
+            assert hasattr(test_file.modify.cal, 'win_days')
+            assert hasattr(test_file.access.cal, 'win_days')
 
         finally:
             test_file.unlink(missing_ok=True)
@@ -75,13 +75,13 @@ def test_range_functionality():
             test_file.write_text("Testing")
 
             # Test ranges that include current time
-            assert test_file.mtime.calendar.in_days(7, 0)    # Last 7 days through today
-            assert test_file.mtime.calendar.in_months(6, 0)  # Last 6 months through this month
-            assert test_file.mtime.calendar.in_years(2, 0)   # Last 2 years through this year
+            assert test_file.mtime.cal.win_days(-7, 0)    # Last 7 days through today
+            assert test_file.mtime.cal.win_months(-6, 0)  # Last 6 months through this month
+            assert test_file.mtime.cal.win_years(-2, 0)   # Last 2 years through this year
 
             # Test parameter order normalization - these should be equivalent
-            result1 = test_file.mtime.calendar.in_days(7, 0)
-            result2 = test_file.mtime.calendar.in_days(0, 7)
+            result1 = test_file.mtime.cal.win_days(-7, 0)
+            result2 = test_file.mtime.cal.win_days(0, -7)
             assert result1 == result2, "Range parameter order should be normalized"
 
         finally:
@@ -98,16 +98,16 @@ def test_return_types():
             test_file.write_text("Testing")
 
             # All methods should return booleans
-            assert isinstance(test_file.mtime.calendar.in_days(0), bool)
-            assert isinstance(test_file.mtime.calendar.in_months(0), bool)
-            assert isinstance(test_file.mtime.calendar.in_quarters(0), bool)
-            assert isinstance(test_file.mtime.calendar.in_years(0), bool)
-            assert isinstance(test_file.mtime.calendar.in_hours(0), bool)
-            assert isinstance(test_file.mtime.calendar.in_minutes(0), bool)
+            assert isinstance(test_file.mtime.cal.win_days(0), bool)
+            assert isinstance(test_file.mtime.cal.win_months(0), bool)
+            assert isinstance(test_file.mtime.cal.win_quarters(0), bool)
+            assert isinstance(test_file.mtime.cal.win_years(0), bool)
+            assert isinstance(test_file.mtime.cal.win_hours(0), bool)
+            assert isinstance(test_file.mtime.cal.win_minutes(0), bool)
 
             # Range methods should also return booleans
-            assert isinstance(test_file.mtime.calendar.in_days(7, 0), bool)
-            assert isinstance(test_file.mtime.calendar.in_months(6, 1), bool)
+            assert isinstance(test_file.mtime.cal.win_days(-7, 0), bool)
+            assert isinstance(test_file.mtime.cal.win_months(-6, -1), bool)
 
         finally:
             test_file.unlink(missing_ok=True)

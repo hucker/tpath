@@ -21,7 +21,7 @@ __author__ = "Chuck Bass"
 
 # Core exports - always available
 from ._age import Age
-from ._cal import Calendar
+from ._cal import Cal
 from ._core import TPath
 from ._size import Size
 from ._time import Time, TimeType
@@ -30,7 +30,7 @@ from ._time import Time, TimeType
 __all__ = [
     "TPath",
     "Age",
-    "Calendar",
+    "Cal",
     "Size",
     "Time",
     "TimeType",

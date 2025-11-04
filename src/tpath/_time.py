@@ -47,7 +47,7 @@ class Time:
             return Age(self.path, time.time(), self.base_time)
 
         stat = self._get_stat()
-        
+
         if self.time_type == "ctime":
             timestamp = stat.st_ctime
         elif self.time_type == "mtime":
@@ -66,7 +66,7 @@ class Time:
             return 0
 
         stat = self._get_stat()
-        
+
         if self.time_type == "ctime":
             return stat.st_ctime
         elif self.time_type == "mtime":
@@ -120,10 +120,11 @@ class Time:
         raise ValueError(f"Unable to parse time string: {time_str}")
 
     @property
-    def calendar(self):
+    def cal(self):
         """Get calendar filtering functionality for this time object."""
-        from ._cal import Calendar
-        return Calendar(self)
+        from ._cal import Cal
+
+        return Cal(self)
 
 
 __all__ = ["Time", "TimeType"]

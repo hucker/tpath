@@ -18,13 +18,13 @@ class TPath(Path):
     Extended Path class with age and size functionality using lambdas.
 
     Provides first-class age functions and size utilities for file operations.
-    
+
     IMPORTANT - Stat Caching Behavior:
     ===================================
     TPath objects cache their stat() result on first access and reuse it for all subsequent
     property calculations (size, age, timestamps, etc.). This creates a consistent "snapshot"
     of the file state that enforces atomic decision-making.
-    
+
     Benefits:
     - Consistent decisions: All properties (size, age, existence) use the same stat snapshot
     - No race conditions: File can't change between size check and age calculation
@@ -33,19 +33,19 @@ class TPath(Path):
 
     This matches the pattern of using a single timestamp for all files in a glob operation,
     ensuring uniform timing across batch operations.
-    
+
     LIMITATION - External Race Conditions:
     =====================================
     Stat caching provides internal consistency but CANNOT prevent external file changes
     between analysis and file operations. This is a fundamental filesystem limitation
     that requires OS-level coordination (file locking, snapshots, or atomic copies).
-    
+
     Example Race Condition:
         file = TPath("data.txt")
         if file.size.bytes > 1000:      # Cached as large file
             # File could be truncated/deleted HERE by external process
             data = file.read_text()      # May fail or read different content!
-    
+
     Defensive Programming Recommended:
         if file.size.bytes > 1000:
             try:
@@ -58,7 +58,7 @@ class TPath(Path):
         if file.exists() and file.size.mb > 10 and file.age.hours < 1:
             # All three conditions use the same stat snapshot - no race conditions!
             process_large_recent_file(file)
-    
+
     For fresh data, create a new TPath instance:
         fresh_file = TPath("data.txt")  # New snapshot with current stat data
 
@@ -92,16 +92,48 @@ class TPath(Path):
     def _stat_cache(self):
         """Cache the stat result to avoid repeated filesystem calls."""
         try:
-            return super().stat()
+            original_stat = super().stat()
+            # Return a modified stat result that uses st_birthtime for st_ctime when available
+            return self._fix_ctime_in_stat(original_stat)
         except (OSError, FileNotFoundError):
             return None
+
+    def _fix_ctime_in_stat(self, stat_result):
+        """Fix stat result to use st_birthtime for st_ctime when available.
+
+        This ensures that when code asks for st_ctime (creation time), it gets the
+        actual file birth time rather than the metadata change time.
+        """
+        if hasattr(stat_result, "st_birthtime") and hasattr(stat_result, "st_ctime"):
+            # Create a wrapper that replaces st_ctime with st_birthtime
+            class StatResultWithFixedCtime:
+                def __init__(self, original_stat):
+                    self._original = original_stat
+
+                def __getattr__(self, name):
+                    if name == "st_ctime":
+                        # Return birth time instead of change time for st_ctime
+                        return self._original.st_birthtime
+                    return getattr(self._original, name)
+
+                # Forward common operations
+                def __repr__(self):
+                    return repr(self._original)
+
+                def __str__(self):
+                    return str(self._original)
+
+            return StatResultWithFixedCtime(stat_result)
+        else:
+            # No st_birthtime available, return original stat
+            return stat_result
 
     def stat(self, *, follow_symlinks: bool = True):
         """Override stat() to use cached result when possible."""
         if not follow_symlinks:
             # For symlinks with follow_symlinks=False, don't use cache
             return super().stat(follow_symlinks=False)
-        
+
         # Use cached result for normal stat() calls
         cached_result = self._stat_cache
         if cached_result is None:
