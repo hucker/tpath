@@ -9,6 +9,7 @@ import datetime as dt
 import pytest
 
 from tpath.chronos import Cal, Chronos
+from tpath.chronos._cal import normalize_weekday
 
 
 def test_cal_with_chronos():
@@ -171,8 +172,6 @@ def test_cal_single_vs_range():
 
 def test_weekday_normalization():
     """Test the normalize_weekday function indirectly through Cal."""
-    from tpath.chronos._cal import normalize_weekday
-
     # Test full names
     assert normalize_weekday("monday") == 0
     assert normalize_weekday("sunday") == 6
@@ -196,8 +195,6 @@ def test_weekday_normalization():
 
 def test_weekday_normalization_errors():
     """Test error handling in weekday normalization."""
-    from tpath.chronos._cal import normalize_weekday
-
     with pytest.raises(ValueError, match="Invalid day specification"):
         normalize_weekday("invalid")
 

@@ -5,7 +5,7 @@ Test file for TPath core functionality (_core.py).
 import datetime as dt
 from pathlib import Path
 
-from tpath import TPath
+from tpath import Age, PathTime, Size, TPath
 
 
 def test_tpath_creation():
@@ -57,8 +57,6 @@ def test_property_access():
         assert hasattr(test_file, "atime")
 
         # Test property types
-        from tpath import Age, PathTime, Size
-
         assert isinstance(test_file.age, Age)
         assert isinstance(test_file.size, Size)
         assert isinstance(test_file.ctime, PathTime)

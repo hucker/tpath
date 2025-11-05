@@ -3,6 +3,7 @@ Demo script showing age calculation with different time types.
 """
 
 import time
+
 from tpath import TPath
 
 # Create a test file
@@ -27,7 +28,7 @@ print(f"Default age (creation):     {test_file.age.seconds:.2f} seconds")
 # Override to use modification time
 print(f"Modification age:           {test_file.mtime.age.seconds:.2f} seconds")
 
-# Override to use access time  
+# Override to use access time
 print(f"Access age:                 {test_file.atime.age.seconds:.2f} seconds")
 
 print("\n--- Using Aliases ---")

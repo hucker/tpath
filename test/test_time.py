@@ -94,13 +94,13 @@ def test_time_datetime_access():
         mtime = test_file.mtime
         atime = test_file.atime
 
-        assert isinstance(ctime.datetime, dt.datetime)
-        assert isinstance(mtime.datetime, dt.datetime)
-        assert isinstance(atime.datetime, dt.datetime)
+        assert isinstance(ctime.target_dt, dt.datetime)
+        assert isinstance(mtime.target_dt, dt.datetime)
+        assert isinstance(atime.target_dt, dt.datetime)
 
         # Datetime should be recent
         now = dt.datetime.now()
-        time_diff = abs((ctime.datetime - now).total_seconds())
+        time_diff = abs((ctime.target_dt - now).total_seconds())
         assert time_diff < 60  # Within 1 minute
 
     finally:

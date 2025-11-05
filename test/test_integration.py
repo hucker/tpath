@@ -48,7 +48,7 @@ def test_integration_basic_workflow():
         print(f"✅ File: {test_file}")
         print(f"✅ Size: {size.bytes} bytes ({size.kb:.3f} KB)")
         print(f"✅ Age: {age.seconds:.3f} seconds")
-        print(f"✅ Created: {ctime.datetime}")
+        print(f"✅ Created: {ctime.target_dt}")
 
         print("✅ Basic integration workflow tests passed")
 

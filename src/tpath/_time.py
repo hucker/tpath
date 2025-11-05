@@ -9,7 +9,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from .chronos import Age, Chronos
+from .chronos import Age, Cal, Chronos
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -17,11 +17,12 @@ TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 class PathTime:
     """Property class for handling different time types (ctime, mtime, atime) with age calculation."""
 
-    def __init__(self, path: Path, time_type: TimeType, base_time: dt.datetime):
+    def __init__(self, path: Path, time_type: TimeType, ref_dt: dt.datetime):
         self.path = path
         # Normalize time_type aliases to standard names
         self.time_type = self._normalize_time_type(time_type)
-        self.base_time = base_time
+        self._ref_dt = ref_dt
+        self._target_dt: dt.datetime | None = None  # Lazy loading
 
     @staticmethod
     def _normalize_time_type(time_type: TimeType) -> Literal["ctime", "mtime", "atime"]:
@@ -47,12 +48,12 @@ class PathTime:
         if not self.path.exists():
             # For nonexistent files, return current time as the target
             # This means age will be 0 (file is "as old as now")
-            chronos = Chronos(self.base_time, self.base_time)
+            chronos = Chronos(self._ref_dt, self._ref_dt)
             return chronos.age
 
         # Use Chronos for consistent datetime handling
-        target_datetime = self.datetime
-        chronos = Chronos(target_datetime, self.base_time)
+        target_datetime = self.target_dt
+        chronos = Chronos(target_datetime, self._ref_dt)
         return chronos.age
 
     @property
@@ -64,21 +65,33 @@ class PathTime:
         stat = self._get_stat()
 
         if self.time_type == "ctime":
-            return stat.st_ctime
+            # Try st_birthtime first (newer), fall back to st_mtime for compatibility
+            birthtime = getattr(stat, 'st_birthtime', None)
+            return birthtime if birthtime is not None else stat.st_mtime
         elif self.time_type == "mtime":
             return stat.st_mtime
         elif self.time_type == "atime":
             return stat.st_atime
         else:
-            return stat.st_ctime
+            birthtime = getattr(stat, 'st_birthtime', None)
+            return birthtime if birthtime is not None else stat.st_mtime
 
     @property
-    def datetime(self):
-        """Get the datetime object for this time type."""
-        timestamp = self.timestamp
-        if timestamp == 0:  # Handle nonexistent files
-            return self.base_time  # Return reference time for nonexistent files
-        return dt.datetime.fromtimestamp(timestamp)
+    def target_dt(self) -> dt.datetime:
+        """Get the target datetime for TimeSpan compatibility."""
+        if self._target_dt is None:
+            # Lazy load the target datetime
+            timestamp = self.timestamp
+            if timestamp == 0:  # Handle nonexistent files
+                self._target_dt = self._ref_dt  # Return reference time for nonexistent files
+            else:
+                self._target_dt = dt.datetime.fromtimestamp(timestamp)
+        return self._target_dt
+
+    @property
+    def ref_dt(self) -> dt.datetime:
+        """Get the reference datetime for TimeSpan compatibility."""
+        return self._ref_dt
 
     @staticmethod
     def parse(time_str: str) -> dt.datetime:
@@ -121,9 +134,6 @@ class PathTime:
     @property
     def cal(self):
         """Get calendar filtering functionality for this time object."""
-        # Use Cal implementation from chronos package
-        from .chronos import Cal
-
         return Cal(self)
 
 

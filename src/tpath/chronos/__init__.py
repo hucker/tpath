@@ -11,10 +11,10 @@ Main exports:
 """
 
 from ._age import Age
-from ._cal import Cal
+from ._cal import Cal, TimeSpan
 from ._chronos import Chronos
 
 __version__ = "1.0.0"
 __author__ = "TPath Project"
 
-__all__ = ["Chronos", "Age", "Cal"]
+__all__ = ["Chronos", "Age", "Cal", "TimeSpan"]

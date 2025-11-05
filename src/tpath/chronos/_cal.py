@@ -12,17 +12,17 @@ if TYPE_CHECKING:
     pass
 
 
-class TimeObj(Protocol):
-    """Protocol for objects that can be used with Cal (Time or Chronos objects)."""
+class TimeSpan(Protocol):
+    """Protocol for objects that represent a time span between two datetime points."""
 
     @property
-    def datetime(self) -> dt.datetime:
-        """Get datetime object."""
+    def target_dt(self) -> dt.datetime:
+        """The target datetime being analyzed."""
         ...
 
     @property
-    def base_time(self) -> dt.datetime:
-        """Get base time for calculations."""
+    def ref_dt(self) -> dt.datetime:
+        """The reference datetime for span calculations."""
         ...
 
 
@@ -90,21 +90,21 @@ def normalize_weekday(day_spec: str) -> int:
 
 
 class Cal:
-    """Calendar window filtering functionality for Time/Chronos objects."""
+    """Calendar window filtering functionality for TimeSpan objects."""
 
-    def __init__(self, time_obj: TimeObj) -> None:
-        """Initialize with a Time or Chronos object to provide calendar filtering methods."""
-        self.time_obj: TimeObj = time_obj
+    def __init__(self, time_span: TimeSpan) -> None:
+        """Initialize with a TimeSpan object to provide calendar filtering methods."""
+        self.time_span: TimeSpan = time_span
 
     @property
     def dt_val(self) -> dt.datetime:
-        """Get datetime from the time object."""
-        return self.time_obj.datetime
+        """Get target datetime from the time span."""
+        return self.time_span.target_dt
 
     @property
     def base_time(self) -> dt.datetime:
-        """Get base_time from the time object."""
-        return self.time_obj.base_time
+        """Get reference datetime from the time span."""
+        return self.time_span.ref_dt
 
     def win_minutes(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the minute window(s) from start to end.
@@ -378,4 +378,4 @@ class Cal:
         return start_week_start <= target_date <= end_week_end
 
 
-__all__ = ["Cal"]
+__all__ = ["Cal", "TimeSpan"]

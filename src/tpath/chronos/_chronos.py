@@ -67,7 +67,7 @@ class Chronos:
 
         Returns Cal object for checking if target_time falls within calendar windows.
         """
-        # Cal can work directly with Chronos since we have .datetime and .base_time properties
+        # Cal can work directly with Chronos since we have .target_dt and .ref_dt properties
         return Cal(self)
 
     @property
@@ -76,8 +76,18 @@ class Chronos:
         return self.target_time.timestamp()
 
     @property
+    def target_dt(self) -> dt.datetime:
+        """Get the target datetime for TimeSpan compatibility."""
+        return self.target_time
+
+    @property
+    def ref_dt(self) -> dt.datetime:
+        """Get the reference datetime for TimeSpan compatibility."""
+        return self.reference_time
+
+    @property
     def datetime(self) -> dt.datetime:
-        """Get the datetime object for target_time (for Cal compatibility)."""
+        """Get the datetime object for target_time (backward compatibility)."""
         return self.target_time
 
     @property
@@ -87,7 +97,7 @@ class Chronos:
 
     @property
     def base_time(self) -> dt.datetime:
-        """Get the reference time (for Cal compatibility)."""
+        """Get the reference time (backward compatibility)."""
         return self.reference_time
 
     @staticmethod
