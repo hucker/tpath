@@ -67,9 +67,7 @@ def test_property_access():
         assert hasattr(test_file, "atime")
 
         # Test property types
-        from tpath._age import Age
-        from tpath._size import Size
-        from tpath._time import Time
+        from tpath import Age, Size, Time
 
         assert isinstance(test_file.age, Age)
         assert isinstance(test_file.size, Size)

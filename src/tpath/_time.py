@@ -9,8 +9,7 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from ._age import Age
-from ._chronos import Chronos
+from .chronos import Chronos, Age
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -122,8 +121,8 @@ class Time:
     @property
     def cal(self):
         """Get calendar filtering functionality for this time object."""
-        # Use existing Cal implementation which works with Time objects
-        from ._cal import Cal
+        # Use Cal implementation from chronos package
+        from .chronos import Cal
 
         return Cal(self)
 

@@ -8,9 +8,7 @@ which enable parsing configuration strings into usable values.
 
 import pytest
 
-from tpath._age import Age
-from tpath._size import Size
-from tpath._time import Time
+from tpath import Age, Size, Time
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ Handles file size operations with various units.
 
 import re
 from pathlib import Path
-from ._constants import (
+from .chronos._constants import (
     BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB, BYTES_PER_TB, BYTES_PER_PB,
     BYTES_PER_KIB, BYTES_PER_MIB, BYTES_PER_GIB, BYTES_PER_TIB, BYTES_PER_PIB,
 )

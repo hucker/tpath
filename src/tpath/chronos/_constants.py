@@ -1,5 +1,5 @@
 """
-Constants used throughout the TPath package.
+Constants used throughout the Chronos package.
 """
 
 # Time conversion constants

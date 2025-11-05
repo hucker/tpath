@@ -1,7 +1,7 @@
 """
-Age property implementation for TPath.
+Age property implementation for Chronos package.
 
-Handles file age calculations in various time units.
+Handles age calculations in various time units, supporting both file-based and standalone usage.
 """
 
 import re
@@ -20,7 +20,7 @@ from ._constants import (
 
 
 class Age:
-    """Property class for handling file age operations."""
+    """Property class for handling age calculations in various time units."""
 
     def __init__(self, path: Path | None, timestamp: float, base_time: datetime):
         self.path = path

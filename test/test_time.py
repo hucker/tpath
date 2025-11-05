@@ -4,9 +4,7 @@ Test file for Time functionality (_time.py).
 
 from datetime import datetime, timedelta
 
-from tpath import TPath
-from tpath._age import Age
-from tpath._time import Time
+from tpath import TPath, Age, Time
 
 
 def test_time_properties():

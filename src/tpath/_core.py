@@ -12,7 +12,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from ._age import Age
+from .chronos import Age
 from ._size import Size
 from ._time import Time
 

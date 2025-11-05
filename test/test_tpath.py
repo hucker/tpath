@@ -5,8 +5,7 @@ Test file for TPath functionality.
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from tpath import TPath
-from tpath._size import Size
+from tpath import TPath, Size
 
 
 def test_basic_functionality():

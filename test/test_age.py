@@ -7,8 +7,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from tpath import TPath
-from tpath._age import Age
+from tpath import TPath, Age
 
 
 def test_age_properties():
