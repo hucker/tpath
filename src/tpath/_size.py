@@ -6,6 +6,10 @@ Handles file size operations with various units.
 
 import re
 from pathlib import Path
+from ._constants import (
+    BYTES_PER_KB, BYTES_PER_MB, BYTES_PER_GB, BYTES_PER_TB, BYTES_PER_PB,
+    BYTES_PER_KIB, BYTES_PER_MIB, BYTES_PER_GIB, BYTES_PER_TIB, BYTES_PER_PIB,
+)
 
 
 class Size:
@@ -27,52 +31,52 @@ class Size:
     @property
     def kb(self) -> float:
         """Get file size in kilobytes (1000 bytes)."""
-        return self.bytes / 1000
+        return self.bytes / BYTES_PER_KB
 
     @property
     def mb(self) -> float:
         """Get file size in megabytes (1000^2 bytes)."""
-        return self.bytes / 1000**2
+        return self.bytes / BYTES_PER_MB
 
     @property
     def gb(self) -> float:
         """Get file size in gigabytes (1000^3 bytes)."""
-        return self.bytes / 1000**3
+        return self.bytes / BYTES_PER_GB
 
     @property
     def tb(self) -> float:
         """Get file size in terabytes (1000^4 bytes)."""
-        return self.bytes / 1000**4
+        return self.bytes / BYTES_PER_TB
 
     @property
     def pb(self) -> float:
         """Get file size in petabytes (1000^5 bytes)."""
-        return self.bytes / 1000**5
+        return self.bytes / BYTES_PER_PB
 
     @property
     def kib(self) -> float:
         """Get file size in kibibytes (1024 bytes)."""
-        return self.bytes / 1024
+        return self.bytes / BYTES_PER_KIB
 
     @property
     def mib(self) -> float:
         """Get file size in mebibytes (1024^2 bytes)."""
-        return self.bytes / 1024**2
+        return self.bytes / BYTES_PER_MIB
 
     @property
     def gib(self) -> float:
         """Get file size in gibibytes (1024^3 bytes)."""
-        return self.bytes / 1024**3
+        return self.bytes / BYTES_PER_GIB
 
     @property
     def tib(self) -> float:
         """Get file size in tebibytes (1024^4 bytes)."""
-        return self.bytes / 1024**4
+        return self.bytes / BYTES_PER_TIB
 
     @property
     def pib(self) -> float:
         """Get file size in pebibytes (1024^5 bytes)."""
-        return self.bytes / 1024**5
+        return self.bytes / BYTES_PER_PIB
 
     @staticmethod
     def parse(size_str: str) -> int:
@@ -103,16 +107,16 @@ class Size:
         # Define multipliers
         binary_units = {
             "B": 1,
-            "KB": 1000,
-            "MB": 1000**2,
-            "GB": 1000**3,
-            "TB": 1000**4,
-            "PB": 1000**5,
-            "KIB": 1024,
-            "MIB": 1024**2,
-            "GIB": 1024**3,
-            "TIB": 1024**4,
-            "PIB": 1024**5,
+            "KB": BYTES_PER_KB,
+            "MB": BYTES_PER_MB,
+            "GB": BYTES_PER_GB,
+            "TB": BYTES_PER_TB,
+            "PB": BYTES_PER_PB,
+            "KIB": BYTES_PER_KIB,
+            "MIB": BYTES_PER_MIB,
+            "GIB": BYTES_PER_GIB,
+            "TIB": BYTES_PER_TIB,
+            "PIB": BYTES_PER_PIB,
         }
 
         if unit not in binary_units:

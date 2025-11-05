@@ -2,14 +2,15 @@
 Time property implementation for TPath.
 
 Handles different time types (ctime, mtime, atime) with age calculation.
+Uses Chronos internally for datetime operations while maintaining the same API.
 """
 
-import time
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Literal
 
 from ._age import Age
+from ._chronos import Chronos
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -43,21 +44,17 @@ class Time:
     @property
     def age(self) -> Age:
         """Get age property for this time type."""
+        # Handle nonexistent files
         if not self.path.exists():
-            return Age(self.path, time.time(), self.base_time)
+            # For nonexistent files, return current time as the target
+            # This means age will be 0 (file is "as old as now")
+            chronos = Chronos(self.base_time, self.base_time)
+            return chronos.age
 
-        stat = self._get_stat()
-
-        if self.time_type == "ctime":
-            timestamp = stat.st_ctime
-        elif self.time_type == "mtime":
-            timestamp = stat.st_mtime
-        elif self.time_type == "atime":
-            timestamp = stat.st_atime
-        else:
-            timestamp = stat.st_ctime  # default to creation time
-
-        return Age(self.path, timestamp, self.base_time)
+        # Use Chronos for consistent datetime handling
+        target_datetime = self.datetime
+        chronos = Chronos(target_datetime, self.base_time)
+        return chronos.age
 
     @property
     def timestamp(self) -> float:
@@ -79,7 +76,10 @@ class Time:
     @property
     def datetime(self):
         """Get the datetime object for this time type."""
-        return dt.fromtimestamp(self.timestamp)
+        timestamp = self.timestamp
+        if timestamp == 0:  # Handle nonexistent files
+            return self.base_time  # Return reference time for nonexistent files
+        return dt.fromtimestamp(timestamp)
 
     @staticmethod
     def parse(time_str: str) -> dt:
@@ -122,6 +122,7 @@ class Time:
     @property
     def cal(self):
         """Get calendar filtering functionality for this time object."""
+        # Use existing Cal implementation which works with Time objects
         from ._cal import Cal
 
         return Cal(self)

@@ -7,12 +7,22 @@ Handles file age calculations in various time units.
 import re
 from datetime import datetime
 from pathlib import Path
+from ._constants import (
+    SECONDS_PER_MINUTE,
+    SECONDS_PER_HOUR,
+    SECONDS_PER_DAY,
+    SECONDS_PER_WEEK,
+    DAYS_PER_MONTH,
+    DAYS_PER_YEAR,
+    SECONDS_PER_MONTH,
+    SECONDS_PER_YEAR,
+)
 
 
 class Age:
     """Property class for handling file age operations."""
 
-    def __init__(self, path: Path, timestamp: float, base_time: datetime):
+    def __init__(self, path: Path | None, timestamp: float, base_time: datetime):
         self.path = path
         self.timestamp = timestamp
         self.base_time = base_time
@@ -20,7 +30,8 @@ class Age:
     @property
     def seconds(self) -> float:
         """Get age in seconds."""
-        if not self.path.exists():
+        # Only check file existence if we have a path
+        if self.path is not None and not self.path.exists():
             return 0
         file_time = datetime.fromtimestamp(self.timestamp)
         return (self.base_time - file_time).total_seconds()
@@ -28,17 +39,17 @@ class Age:
     @property
     def minutes(self) -> float:
         """Get age in minutes."""
-        return self.seconds / 60
+        return self.seconds / SECONDS_PER_MINUTE
 
     @property
     def hours(self) -> float:
         """Get age in hours."""
-        return self.seconds / 3600
+        return self.seconds / SECONDS_PER_HOUR
 
     @property
     def days(self) -> float:
         """Get age in days."""
-        return self.seconds / 86400
+        return self.seconds / SECONDS_PER_DAY
 
     @property
     def weeks(self) -> float:
@@ -48,12 +59,12 @@ class Age:
     @property
     def months(self) -> float:
         """Get age in months (approximate - 30.44 days)."""
-        return self.days / 30.44
+        return self.days / DAYS_PER_MONTH
 
     @property
     def years(self) -> float:
         """Get age in years (approximate - 365.25 days)."""
-        return self.days / 365.25
+        return self.days / DAYS_PER_YEAR
 
     @staticmethod
     def parse(age_str: str) -> float:
@@ -89,25 +100,25 @@ class Age:
             "sec": 1,
             "second": 1,
             "seconds": 1,
-            "m": 60,
-            "min": 60,
-            "minute": 60,
-            "minutes": 60,
-            "h": 3600,
-            "hr": 3600,
-            "hour": 3600,
-            "hours": 3600,
-            "d": 86400,
-            "day": 86400,
-            "days": 86400,
-            "w": 604800,
-            "week": 604800,
-            "weeks": 604800,
-            "month": 2630016,  # 30.44 days
-            "months": 2630016,
-            "y": 31557600,  # 365.25 days
-            "year": 31557600,
-            "years": 31557600,
+            "m": SECONDS_PER_MINUTE,
+            "min": SECONDS_PER_MINUTE,
+            "minute": SECONDS_PER_MINUTE,
+            "minutes": SECONDS_PER_MINUTE,
+            "h": SECONDS_PER_HOUR,
+            "hr": SECONDS_PER_HOUR,
+            "hour": SECONDS_PER_HOUR,
+            "hours": SECONDS_PER_HOUR,
+            "d": SECONDS_PER_DAY,
+            "day": SECONDS_PER_DAY,
+            "days": SECONDS_PER_DAY,
+            "w": SECONDS_PER_WEEK,
+            "week": SECONDS_PER_WEEK,
+            "weeks": SECONDS_PER_WEEK,
+            "month": SECONDS_PER_MONTH,
+            "months": SECONDS_PER_MONTH,
+            "y": SECONDS_PER_YEAR,
+            "year": SECONDS_PER_YEAR,
+            "years": SECONDS_PER_YEAR,
         }
 
         if unit not in unit_multipliers:
