@@ -2,12 +2,12 @@
 Test file for Age functionality (_age.py).
 """
 
+import datetime as dt
 import time
-from datetime import datetime, timedelta
 
 import pytest
 
-from tpath import TPath, Age
+from tpath import Age, TPath
 
 
 def test_age_properties():
@@ -63,7 +63,7 @@ def test_age_with_custom_base_time():
 
     try:
         # Test with yesterday as base time
-        yesterday = datetime.now() - timedelta(days=1)
+        yesterday = dt.datetime.now() - dt.timedelta(days=1)
         path_with_base = TPath("test_age_base_file.txt").with_base_time(yesterday)
 
         age = path_with_base.age
@@ -75,7 +75,7 @@ def test_age_with_custom_base_time():
         print(f"Age with yesterday base: {age.days:.2f} days")
 
         # Test with future base time
-        tomorrow = datetime.now() + timedelta(days=1)
+        tomorrow = dt.datetime.now() + dt.timedelta(days=1)
         path_future = TPath("test_age_base_file.txt").with_base_time(tomorrow)
         future_age = path_future.age
 

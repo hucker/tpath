@@ -3,7 +3,7 @@ Integration tests for TPath functionality.
 Tests the complete functionality working together.
 """
 
-from datetime import datetime, timedelta
+import datetime as dt
 
 from tpath import Size, TPath
 
@@ -165,7 +165,7 @@ def test_integration_custom_base_time():
     print("Testing custom base time integration...")
 
     # Test scenario: file management with custom reference time
-    reference_time = datetime.now() - timedelta(hours=12)
+    reference_time = dt.datetime.now() - dt.timedelta(hours=12)
 
     test_file = TPath("base_time_test.txt").with_base_time(reference_time)
     test_file.write_text("Testing custom base time scenarios")
@@ -185,16 +185,6 @@ def test_integration_custom_base_time():
         # Test that size still works normally
         size = test_file.size
         assert size.bytes > 0
-
-        # Test comparison scenario
-        if abs(age.hours) < 24:  # File is "newer" than 24 hours from base
-            print("✅ File is newer than 24 hours from reference")
-
-        print(f"✅ Age from 12h ago base: {age.hours:.2f} hours")
-        print(f"✅ Size: {size.bytes} bytes")
-        print(f"✅ Created relative to base: {ctime_hours:.2f} hours")
-
-        print("✅ Custom base time integration tests passed")
 
     finally:
         # Clean up

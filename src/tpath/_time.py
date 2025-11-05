@@ -5,11 +5,11 @@ Handles different time types (ctime, mtime, atime) with age calculation.
 Uses Chronos internally for datetime operations while maintaining the same API.
 """
 
-from datetime import datetime as dt
+import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from .chronos import Chronos, Age
+from .chronos import Age, Chronos
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -17,7 +17,7 @@ TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 class PathTime:
     """Property class for handling different time types (ctime, mtime, atime) with age calculation."""
 
-    def __init__(self, path: Path, time_type: TimeType, base_time: dt):
+    def __init__(self, path: Path, time_type: TimeType, base_time: dt.datetime):
         self.path = path
         # Normalize time_type aliases to standard names
         self.time_type = self._normalize_time_type(time_type)
@@ -78,10 +78,10 @@ class PathTime:
         timestamp = self.timestamp
         if timestamp == 0:  # Handle nonexistent files
             return self.base_time  # Return reference time for nonexistent files
-        return dt.fromtimestamp(timestamp)
+        return dt.datetime.fromtimestamp(timestamp)
 
     @staticmethod
-    def parse(time_str: str) -> dt:
+    def parse(time_str: str) -> dt.datetime:
         """
         Parse a time string and return a datetime object.
 
@@ -95,7 +95,7 @@ class PathTime:
 
         # Handle Unix timestamp (all digits)
         if time_str.isdigit():
-            return dt.fromtimestamp(float(time_str))
+            return dt.datetime.fromtimestamp(float(time_str))
 
         # Try common datetime formats
         formats = [
@@ -112,7 +112,7 @@ class PathTime:
 
         for fmt in formats:
             try:
-                return dt.strptime(time_str, fmt)
+                return dt.datetime.strptime(time_str, fmt)
             except ValueError:
                 continue
 

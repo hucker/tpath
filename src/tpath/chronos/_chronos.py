@@ -5,9 +5,10 @@ Handles age calculations, calendar windows, and datetime parsing for any datetim
 Designed to be reusable beyond file operations.
 """
 
-from datetime import datetime
+import datetime as dt
 
 from ._age import Age
+from ._cal import Cal
 
 
 class Chronos:
@@ -33,7 +34,9 @@ class Chronos:
             print("Meeting was today")
     """
 
-    def __init__(self, target_time: datetime, reference_time: datetime | None = None):
+    def __init__(
+        self, target_time: dt.datetime, reference_time: dt.datetime | None = None
+    ):
         """
         Initialize Chronos with target and reference times.
 
@@ -42,7 +45,7 @@ class Chronos:
             reference_time: Reference time for calculations (defaults to now)
         """
         self.target_time = target_time
-        self.reference_time = reference_time or datetime.now()
+        self.reference_time = reference_time or dt.datetime.now()
 
     @property
     def age(self) -> Age:
@@ -65,7 +68,6 @@ class Chronos:
         Returns Cal object for checking if target_time falls within calendar windows.
         """
         # Cal can work directly with Chronos since we have .datetime and .base_time properties
-        from ._cal import Cal
         return Cal(self)
 
     @property
@@ -74,17 +76,22 @@ class Chronos:
         return self.target_time.timestamp()
 
     @property
-    def datetime(self) -> datetime:
+    def datetime(self) -> dt.datetime:
+        """Get the datetime object for target_time (for Cal compatibility)."""
+        return self.target_time
+
+    @property
+    def date_time(self) -> dt.datetime:
         """Get the datetime object for target_time."""
         return self.target_time
 
     @property
-    def base_time(self) -> datetime:
+    def base_time(self) -> dt.datetime:
         """Get the reference time (for Cal compatibility)."""
         return self.reference_time
 
     @staticmethod
-    def parse(time_str: str, reference_time: datetime | None = None):
+    def parse(time_str: str, reference_time: dt.datetime | None = None):
         """
         Parse a time string and return a Chronos object.
 
@@ -105,7 +112,7 @@ class Chronos:
 
         # Handle Unix timestamp (all digits)
         if time_str.isdigit():
-            target_time = datetime.fromtimestamp(float(time_str))
+            target_time = dt.datetime.fromtimestamp(float(time_str))
             return Chronos(target_time, reference_time)
 
         # Try common datetime formats
@@ -123,14 +130,14 @@ class Chronos:
 
         for fmt in formats:
             try:
-                target_time = datetime.strptime(time_str, fmt)
+                target_time = dt.datetime.strptime(time_str, fmt)
                 return Chronos(target_time, reference_time)
             except ValueError:
                 continue
 
         raise ValueError(f"Unable to parse time string: {time_str}")
 
-    def with_reference_time(self, reference_time: datetime):
+    def with_reference_time(self, reference_time: dt.datetime):
         """
         Create a new Chronos object with a different reference time.
 

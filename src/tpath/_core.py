@@ -12,9 +12,9 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
-from .chronos import Age
 from ._size import Size
 from ._time import PathTime
+from .chronos import Age
 
 
 class TPath(Path):
@@ -98,14 +98,24 @@ class TPath(Path):
         try:
             original_stat = super().stat()
             # On platforms with st_birthtime, replace st_ctime with actual creation time
-            if hasattr(original_stat, "st_birthtime") and hasattr(original_stat, "st_ctime"):
+            if hasattr(original_stat, "st_birthtime") and hasattr(
+                original_stat, "st_ctime"
+            ):
                 # Create new stat result with corrected st_ctime (using st_birthtime)
-                modified_stat = os.stat_result((
-                    original_stat.st_mode, original_stat.st_ino, original_stat.st_dev,
-                    original_stat.st_nlink, original_stat.st_uid, original_stat.st_gid,
-                    original_stat.st_size, original_stat.st_atime, original_stat.st_mtime,
-                    original_stat.st_birthtime  # Use birthtime for ctime
-                ))
+                modified_stat = os.stat_result(
+                    (
+                        original_stat.st_mode,
+                        original_stat.st_ino,
+                        original_stat.st_dev,
+                        original_stat.st_nlink,
+                        original_stat.st_uid,
+                        original_stat.st_gid,
+                        original_stat.st_size,
+                        original_stat.st_atime,
+                        original_stat.st_mtime,
+                        original_stat.st_birthtime,  # Use birthtime for ctime
+                    )
+                )
                 return modified_stat
             else:
                 return original_stat
@@ -250,8 +260,6 @@ class TPath(Path):
                 f"Invalid mode specification: '{spec}'. Valid options: {valid_specs}"
             )
 
-
-
     @property
     def owner_readable(self) -> bool:
         """True if the owner has read permission."""
@@ -281,8 +289,6 @@ class TPath(Path):
             return bool(stat_result.st_mode & stat.S_IXUSR)
         except (OSError, FileNotFoundError):
             return False
-
-
 
     def with_base_time(self, base_time: datetime) -> "TPath":
         """Create a new TPath with a different base time for age calculations."""

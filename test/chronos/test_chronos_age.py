@@ -4,17 +4,18 @@ Test file for standalone Age functionality.
 Tests the Age class as a standalone utility without file dependencies.
 """
 
+import datetime as dt
+
 import pytest
-from datetime import datetime
 
 from tpath.chronos import Age
 
 
 def test_age_standalone_creation():
     """Test Age class creation without file dependency."""
-    timestamp = datetime(2024, 1, 1, 12, 0, 0).timestamp()
-    base_time = datetime(2024, 1, 2, 12, 0, 0)
-    
+    timestamp = dt.datetime(2024, 1, 1, 12, 0, 0).timestamp()
+    base_time: dt.datetime = dt.datetime(2024, 1, 2, 12, 0, 0)
+
     # Test standalone usage (no path)
     age = Age(None, timestamp, base_time)
     assert age.path is None
@@ -25,16 +26,16 @@ def test_age_standalone_creation():
 def test_age_time_calculations():
     """Test Age time unit calculations."""
     # 1 day difference
-    timestamp = datetime(2024, 1, 1, 12, 0, 0).timestamp()
-    base_time = datetime(2024, 1, 2, 12, 0, 0)
-    
+    timestamp = dt.datetime(2024, 1, 1, 12, 0, 0).timestamp()
+    base_time = dt.datetime(2024, 1, 2, 12, 0, 0)
+
     age = Age(None, timestamp, base_time)
-    
+
     # Test exact calculations
     assert age.seconds == 86400.0  # 24 * 60 * 60
-    assert age.minutes == 1440.0   # 24 * 60
-    assert age.hours == 24.0       # 24
-    assert age.days == 1.0         # 1
+    assert age.minutes == 1440.0  # 24 * 60
+    assert age.hours == 24.0  # 24
+    assert age.days == 1.0  # 1
     assert age.weeks == pytest.approx(1.0 / 7.0)
     assert age.months == pytest.approx(1.0 / 30.44)
     assert age.years == pytest.approx(1.0 / 365.25)
@@ -43,15 +44,15 @@ def test_age_time_calculations():
 def test_age_fractional_calculations():
     """Test Age calculations with fractional time periods."""
     # 12 hours difference
-    timestamp = datetime(2024, 1, 1, 12, 0, 0).timestamp()
-    base_time = datetime(2024, 1, 2, 0, 0, 0)  # 12 hours later
-    
+    timestamp = dt.datetime(2024, 1, 1, 12, 0, 0).timestamp()
+    base_time = dt.datetime(2024, 1, 2, 0, 0, 0)  # 12 hours later
+
     age = Age(None, timestamp, base_time)
-    
+
     assert age.seconds == 43200.0  # 12 * 60 * 60
-    assert age.minutes == 720.0    # 12 * 60
-    assert age.hours == 12.0       # 12
-    assert age.days == 0.5         # 0.5
+    assert age.minutes == 720.0  # 12 * 60
+    assert age.hours == 12.0  # 12
+    assert age.days == 0.5  # 0.5
     assert age.weeks == pytest.approx(0.5 / 7.0)
 
 
@@ -63,11 +64,11 @@ def test_age_parse_static_method():
     assert Age.parse("2h") == 7200.0  # 2 hours
     assert Age.parse("3d") == 259200.0  # 3 days
     assert Age.parse("1w") == 604800.0  # 1 week
-    
+
     # Test longer units
     assert Age.parse("1y") == 31557600.0  # 1 year
     assert Age.parse("2months") == 5260032.0  # 2 months
-    
+
     # Test decimal values
     assert Age.parse("1.5h") == 5400.0  # 1.5 hours
     assert Age.parse("2.5d") == 216000.0  # 2.5 days
@@ -88,16 +89,16 @@ def test_age_parse_unit_variations():
     assert Age.parse("5min") == 300.0
     assert Age.parse("5minute") == 300.0
     assert Age.parse("5minutes") == 300.0
-    
+
     # Test hour variations
     assert Age.parse("2hr") == 7200.0
     assert Age.parse("2hour") == 7200.0
     assert Age.parse("2hours") == 7200.0
-    
+
     # Test day variations
     assert Age.parse("3day") == 259200.0
     assert Age.parse("3days") == 259200.0
-    
+
     # Test week variations
     assert Age.parse("1week") == 604800.0
     assert Age.parse("1weeks") == 604800.0
@@ -114,21 +115,21 @@ def test_age_parse_error_handling():
     """Test Age.parse error handling for invalid input."""
     with pytest.raises(ValueError, match="Invalid age format"):
         Age.parse("invalid")
-    
+
     with pytest.raises(ValueError, match="Invalid age format"):
         Age.parse("5.5.5h")  # Multiple decimal points
-    
+
     with pytest.raises(ValueError, match="Unknown unit"):
         Age.parse("5xyz")  # Invalid unit
 
 
 def test_age_zero_time_difference():
     """Test Age calculations when timestamps are the same."""
-    timestamp = datetime(2024, 1, 1, 12, 0, 0).timestamp()
-    base_time = datetime(2024, 1, 1, 12, 0, 0)
-    
+    timestamp = dt.datetime(2024, 1, 1, 12, 0, 0).timestamp()
+    base_time = dt.datetime(2024, 1, 1, 12, 0, 0)
+
     age = Age(None, timestamp, base_time)
-    
+
     assert age.seconds == 0.0
     assert age.minutes == 0.0
     assert age.hours == 0.0
@@ -141,17 +142,13 @@ def test_age_zero_time_difference():
 def test_age_negative_time_difference():
     """Test Age calculations when target is in the future."""
     # Target time is 1 day in the future
-    timestamp = datetime(2024, 1, 2, 12, 0, 0).timestamp()
-    base_time = datetime(2024, 1, 1, 12, 0, 0)
-    
+    timestamp = dt.datetime(2024, 1, 2, 12, 0, 0).timestamp()
+    base_time: dt.datetime = dt.datetime(2024, 1, 1, 12, 0, 0)
+
     age = Age(None, timestamp, base_time)
-    
+
     # Should return negative values (future dates)
     assert age.seconds == -86400.0
     assert age.minutes == -1440.0
     assert age.hours == -24.0
     assert age.days == -1.0
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])

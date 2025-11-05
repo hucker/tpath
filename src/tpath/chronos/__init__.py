@@ -10,9 +10,9 @@ Main exports:
     Cal: Calendar window filtering functionality
 """
 
-from ._chronos import Chronos
 from ._age import Age
 from ._cal import Cal
+from ._chronos import Chronos
 
 __version__ = "1.0.0"
 __author__ = "TPath Project"

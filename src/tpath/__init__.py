@@ -20,10 +20,10 @@ __version__ = "0.1.0"
 __author__ = "Chuck Bass"
 
 # Core exports - always available
-from .chronos import Age, Cal
 from ._core import TPath
 from ._size import Size
 from ._time import PathTime, TimeType
+from .chronos import Age, Cal
 
 # Base __all__ with core exports
 __all__ = [

@@ -2,9 +2,9 @@
 Test file for Time functionality (_time.py).
 """
 
-from datetime import datetime, timedelta
+import datetime as dt
 
-from tpath import TPath, Age, PathTime
+from tpath import Age, PathTime, TPath
 
 
 def test_time_properties():
@@ -64,7 +64,7 @@ def test_time_timestamp_access():
         assert isinstance(atime.timestamp, float)
 
         # Timestamps should be reasonable (recent)
-        now = datetime.now().timestamp()
+        now = dt.datetime.now().timestamp()
         assert abs(ctime.timestamp - now) < 60  # Within 1 minute
         assert abs(mtime.timestamp - now) < 60
         assert abs(atime.timestamp - now) < 60
@@ -83,7 +83,6 @@ def test_time_timestamp_access():
 
 def test_time_datetime_access():
     """Test Time datetime property."""
-    print("Testing Time datetime access...")
 
     # Create a test file
     test_file = TPath("test_datetime_file.txt")
@@ -95,20 +94,14 @@ def test_time_datetime_access():
         mtime = test_file.mtime
         atime = test_file.atime
 
-        assert isinstance(ctime.datetime, datetime)
-        assert isinstance(mtime.datetime, datetime)
-        assert isinstance(atime.datetime, datetime)
+        assert isinstance(ctime.datetime, dt.datetime)
+        assert isinstance(mtime.datetime, dt.datetime)
+        assert isinstance(atime.datetime, dt.datetime)
 
         # Datetime should be recent
-        now = datetime.now()
+        now = dt.datetime.now()
         time_diff = abs((ctime.datetime - now).total_seconds())
         assert time_diff < 60  # Within 1 minute
-
-        print(f"Creation datetime: {ctime.datetime}")
-        print(f"Modification datetime: {mtime.datetime}")
-        print(f"Access datetime: {atime.datetime}")
-
-        print("✅ Datetime access tests passed")
 
     finally:
         # Clean up
@@ -118,10 +111,9 @@ def test_time_datetime_access():
 
 def test_time_with_custom_base():
     """Test Time with custom base time."""
-    print("Testing Time with custom base time...")
 
     # Create a test file with custom base time
-    yesterday = datetime.now() - timedelta(days=1)
+    yesterday = dt.datetime.now() - dt.timedelta(days=1)
     test_file = TPath("test_base_time_file.txt").with_base_time(yesterday)
     test_file.write_text("Testing custom base time")
 
@@ -141,11 +133,6 @@ def test_time_with_custom_base():
 
         assert mtime_age.days < 0
         assert atime_age.days < 0
-
-        print(f"Mtime age with custom base: {mtime_age.days:.2f} days")
-        print(f"Atime age with custom base: {atime_age.days:.2f} days")
-
-        print("✅ Custom base time tests passed")
 
     finally:
         # Clean up
@@ -182,9 +169,3 @@ def test_time_nonexistent_file():
     assert ctime.timestamp == 0
     assert mtime.timestamp == 0
     assert atime.timestamp == 0
-
-    print(f"Nonexistent file ctime age: {ctime.age.seconds:.2f} seconds")
-    print(f"Nonexistent file mtime timestamp: {mtime.timestamp}")
-    print(f"Nonexistent file atime timestamp: {atime.timestamp}")
-
-    print("✅ Nonexistent file tests passed")

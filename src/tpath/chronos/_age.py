@@ -4,17 +4,18 @@ Age property implementation for Chronos package.
 Handles age calculations in various time units, supporting both file-based and standalone usage.
 """
 
+import datetime as dt
 import re
-from datetime import datetime
 from pathlib import Path
+
 from ._constants import (
-    SECONDS_PER_MINUTE,
-    SECONDS_PER_HOUR,
-    SECONDS_PER_DAY,
-    SECONDS_PER_WEEK,
     DAYS_PER_MONTH,
     DAYS_PER_YEAR,
+    SECONDS_PER_DAY,
+    SECONDS_PER_HOUR,
+    SECONDS_PER_MINUTE,
     SECONDS_PER_MONTH,
+    SECONDS_PER_WEEK,
     SECONDS_PER_YEAR,
 )
 
@@ -22,7 +23,7 @@ from ._constants import (
 class Age:
     """Property class for handling age calculations in various time units."""
 
-    def __init__(self, path: Path | None, timestamp: float, base_time: datetime):
+    def __init__(self, path: Path | None, timestamp: float, base_time: dt.datetime):
         self.path = path
         self.timestamp = timestamp
         self.base_time = base_time
@@ -33,7 +34,7 @@ class Age:
         # Only check file existence if we have a path
         if self.path is not None and not self.path.exists():
             return 0
-        file_time = datetime.fromtimestamp(self.timestamp)
+        file_time = dt.datetime.fromtimestamp(self.timestamp)
         return (self.base_time - file_time).total_seconds()
 
     @property
@@ -91,8 +92,8 @@ class Age:
         if not match:
             raise ValueError(f"Invalid age format: {age_str}")
 
-        value = float(match.group(1))
-        unit = match.group(2).lower()
+        value: float = float(match.group(1))
+        unit: str = match.group(2).lower()
 
         # Define multipliers (convert to seconds)
         unit_multipliers = {

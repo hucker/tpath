@@ -1,12 +1,12 @@
 """
 Calendar-based time window filtering for Chronos package.
 
-Provides calendar window filtering functionality that works with any object 
+Provides calendar window filtering functionality that works with any object
 having datetime and base_time properties (Time or Chronos objects).
 """
 
 import datetime as dt
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     pass
@@ -14,12 +14,12 @@ if TYPE_CHECKING:
 
 class TimeObj(Protocol):
     """Protocol for objects that can be used with Cal (Time or Chronos objects)."""
-    
+
     @property
     def datetime(self) -> dt.datetime:
         """Get datetime object."""
         ...
-    
+
     @property
     def base_time(self) -> dt.datetime:
         """Get base time for calculations."""
