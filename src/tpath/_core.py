@@ -14,7 +14,7 @@ from typing import Any
 
 from .chronos import Age
 from ._size import Size
-from ._time import Time
+from ._time import PathTime
 
 
 class TPath(Path):
@@ -97,41 +97,20 @@ class TPath(Path):
         """Cache the stat result to avoid repeated filesystem calls."""
         try:
             original_stat = super().stat()
-            # Return a modified stat result that uses st_birthtime for st_ctime when available
-            return self._fix_ctime_in_stat(original_stat)
+            # On platforms with st_birthtime, replace st_ctime with actual creation time
+            if hasattr(original_stat, "st_birthtime") and hasattr(original_stat, "st_ctime"):
+                # Create new stat result with corrected st_ctime (using st_birthtime)
+                modified_stat = os.stat_result((
+                    original_stat.st_mode, original_stat.st_ino, original_stat.st_dev,
+                    original_stat.st_nlink, original_stat.st_uid, original_stat.st_gid,
+                    original_stat.st_size, original_stat.st_atime, original_stat.st_mtime,
+                    original_stat.st_birthtime  # Use birthtime for ctime
+                ))
+                return modified_stat
+            else:
+                return original_stat
         except (OSError, FileNotFoundError):
             return None
-
-    def _fix_ctime_in_stat(self, stat_result: os.stat_result) -> Any:
-        """Fix stat result to use st_birthtime for st_ctime when available.
-
-        This ensures that when code asks for st_ctime (creation time), it gets the
-        actual file birth time rather than the metadata change time.
-        """
-        if hasattr(stat_result, "st_birthtime") and hasattr(stat_result, "st_ctime"):
-            # Create a wrapper that replaces st_ctime with st_birthtime
-            class StatResultWithFixedCtime:
-                def __init__(self, original_stat: os.stat_result):
-                    self._original = original_stat
-
-                def __getattr__(self, name: str):
-                    if name == "st_ctime":
-                        # Return birth time instead of change time for st_ctime
-                        # We know st_birthtime exists because we checked above
-                        return getattr(self._original, "st_birthtime", None)
-                    return getattr(self._original, name)
-
-                # Forward common operations
-                def __repr__(self):
-                    return repr(self._original)
-
-                def __str__(self):
-                    return str(self._original)
-
-            return StatResultWithFixedCtime(stat_result)
-        else:
-            # No st_birthtime available, return original stat
-            return stat_result
 
     def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
         """Override stat() to use cached result when possible."""
@@ -149,37 +128,37 @@ class TPath(Path):
     @property
     def age(self) -> Age:
         """Get age property based on creation time."""
-        return Time(self, "ctime", self._base_time).age
+        return PathTime(self, "ctime", self._base_time).age
 
     @property
-    def ctime(self) -> Time:
+    def ctime(self) -> PathTime:
         """Get creation time property."""
-        return Time(self, "ctime", self._base_time)
+        return PathTime(self, "ctime", self._base_time)
 
     @property
-    def mtime(self) -> Time:
+    def mtime(self) -> PathTime:
         """Get modification time property."""
-        return Time(self, "mtime", self._base_time)
+        return PathTime(self, "mtime", self._base_time)
 
     @property
-    def atime(self) -> Time:
+    def atime(self) -> PathTime:
         """Get access time property."""
-        return Time(self, "atime", self._base_time)
+        return PathTime(self, "atime", self._base_time)
 
     @property
-    def create(self) -> Time:
+    def create(self) -> PathTime:
         """Get creation time property (alias for ctime)."""
-        return Time(self, "create", self._base_time)
+        return PathTime(self, "create", self._base_time)
 
     @property
-    def modify(self) -> Time:
+    def modify(self) -> PathTime:
         """Get modification time property (alias for mtime)."""
-        return Time(self, "modify", self._base_time)
+        return PathTime(self, "modify", self._base_time)
 
     @property
-    def access(self) -> Time:
+    def access(self) -> PathTime:
         """Get access time property (alias for atime)."""
-        return Time(self, "access", self._base_time)
+        return PathTime(self, "access", self._base_time)
 
     @property
     def size(self) -> Size:

@@ -23,7 +23,7 @@ __author__ = "Chuck Bass"
 from .chronos import Age, Cal
 from ._core import TPath
 from ._size import Size
-from ._time import Time, TimeType
+from ._time import PathTime, TimeType
 
 # Base __all__ with core exports
 __all__ = [
@@ -31,7 +31,7 @@ __all__ = [
     "Age",
     "Cal",
     "Size",
-    "Time",
+    "PathTime",
     "TimeType",
 ]
 

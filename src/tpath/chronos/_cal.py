@@ -5,7 +5,7 @@ Provides calendar window filtering functionality that works with any object
 having datetime and base_time properties (Time or Chronos objects).
 """
 
-from datetime import datetime, timedelta
+import datetime as dt
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -16,12 +16,12 @@ class TimeObj(Protocol):
     """Protocol for objects that can be used with Cal (Time or Chronos objects)."""
     
     @property
-    def datetime(self) -> datetime:
+    def datetime(self) -> dt.datetime:
         """Get datetime object."""
         ...
     
     @property
-    def base_time(self) -> datetime:
+    def base_time(self) -> dt.datetime:
         """Get base time for calculations."""
         ...
 
@@ -92,17 +92,17 @@ def normalize_weekday(day_spec: str) -> int:
 class Cal:
     """Calendar window filtering functionality for Time/Chronos objects."""
 
-    def __init__(self, time_obj: TimeObj):
+    def __init__(self, time_obj: TimeObj) -> None:
         """Initialize with a Time or Chronos object to provide calendar filtering methods."""
-        self.time_obj = time_obj
+        self.time_obj: TimeObj = time_obj
 
     @property
-    def datetime(self):
+    def dt_val(self) -> dt.datetime:
         """Get datetime from the time object."""
         return self.time_obj.datetime
 
     @property
-    def base_time(self):
+    def base_time(self) -> dt.datetime:
         """Get base_time from the time object."""
         return self.time_obj.base_time
 
@@ -126,14 +126,14 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_time = self.datetime
+        target_time = self.dt_val
 
         # Calculate the time window boundaries
-        start_time = self.base_time + timedelta(minutes=start)
+        start_time = self.base_time + dt.timedelta(minutes=start)
         start_minute = start_time.replace(second=0, microsecond=0)
 
-        end_time = self.base_time + timedelta(minutes=end)
-        end_minute = end_time.replace(second=0, microsecond=0) + timedelta(minutes=1)
+        end_time = self.base_time + dt.timedelta(minutes=end)
+        end_minute = end_time.replace(second=0, microsecond=0) + dt.timedelta(minutes=1)
 
         return start_minute <= target_time < end_minute
 
@@ -156,14 +156,14 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_time = self.datetime
+        target_time = self.dt_val
 
         # Calculate the time window boundaries
-        start_time = self.base_time + timedelta(hours=start)
+        start_time = self.base_time + dt.timedelta(hours=start)
         start_hour = start_time.replace(minute=0, second=0, microsecond=0)
 
-        end_time = self.base_time + timedelta(hours=end)
-        end_hour = end_time.replace(minute=0, second=0, microsecond=0) + timedelta(
+        end_time = self.base_time + dt.timedelta(hours=end)
+        end_hour = end_time.replace(minute=0, second=0, microsecond=0) + dt.timedelta(
             hours=1
         )
 
@@ -188,11 +188,11 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_date = self.datetime.date()
+        target_date = self.dt_val.date()
 
         # Calculate the date range boundaries
-        start_date = (self.base_time + timedelta(days=start)).date()
-        end_date = (self.base_time + timedelta(days=end)).date()
+        start_date = (self.base_time + dt.timedelta(days=start)).date()
+        end_date = (self.base_time + dt.timedelta(days=end)).date()
 
         return start_date <= target_date <= end_date
 
@@ -215,7 +215,7 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_time = self.datetime
+        target_time = self.dt_val
         base_year = self.base_time.year
         base_month = self.base_time.month
 
@@ -265,7 +265,7 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_time = self.datetime
+        target_time = self.dt_val
         base_time = self.base_time
 
         # Get current quarter (1-4) and year
@@ -323,7 +323,7 @@ class Cal:
         if start > end:
             start, end = end, start
 
-        target_year = self.datetime.year
+        target_year = self.dt_val.year
         base_year = self.base_time.year
 
         # Calculate year range boundaries
@@ -361,17 +361,17 @@ class Cal:
         # Normalize the week start day
         week_start_day = normalize_weekday(week_start)
 
-        target_date = self.datetime.date()
+        target_date = self.dt_val.date()
         base_date = self.base_time.date()
 
         # Calculate the start of the current week based on week_start_day
         days_since_week_start = (base_date.weekday() - week_start_day) % 7
-        current_week_start = base_date - timedelta(days=days_since_week_start)
+        current_week_start = base_date - dt.timedelta(days=days_since_week_start)
 
         # Calculate week boundaries
-        start_week_start = current_week_start + timedelta(weeks=start)
-        end_week_start = current_week_start + timedelta(weeks=end)
-        end_week_end = end_week_start + timedelta(
+        start_week_start = current_week_start + dt.timedelta(weeks=start)
+        end_week_start = current_week_start + dt.timedelta(weeks=end)
+        end_week_end = end_week_start + dt.timedelta(
             days=6
         )  # End of week (6 days after start)
 

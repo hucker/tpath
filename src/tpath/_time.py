@@ -14,7 +14,7 @@ from .chronos import Chronos, Age
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
 
-class Time:
+class PathTime:
     """Property class for handling different time types (ctime, mtime, atime) with age calculation."""
 
     def __init__(self, path: Path, time_type: TimeType, base_time: dt):
@@ -127,4 +127,4 @@ class Time:
         return Cal(self)
 
 
-__all__ = ["Time", "TimeType"]
+__all__ = ["PathTime", "TimeType"]

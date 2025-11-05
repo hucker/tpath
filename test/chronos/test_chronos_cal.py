@@ -21,7 +21,7 @@ def test_cal_with_chronos():
     
     # Test that we can access calendar functionality
     assert isinstance(cal, Cal)
-    assert cal.datetime == target_time
+    assert cal.dt_val == target_time
     assert cal.base_time == reference_time
 
 

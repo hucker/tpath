@@ -4,12 +4,12 @@ Test file for Time functionality (_time.py).
 
 from datetime import datetime, timedelta
 
-from tpath import TPath, Age, Time
+from tpath import TPath, Age, PathTime
 
 
 def test_time_properties():
-    """Test Time class properties."""
-    print("Testing Time properties...")
+    """Test PathTime class properties."""
+    print("Testing PathTime properties...")
 
     # Create a test file
     test_file = TPath("test_time_file.txt")
@@ -18,15 +18,15 @@ def test_time_properties():
     try:
         # Test ctime property
         ctime = test_file.ctime
-        assert isinstance(ctime, Time)
+        assert isinstance(ctime, PathTime)
 
         # Test mtime property
         mtime = test_file.mtime
-        assert isinstance(mtime, Time)
+        assert isinstance(mtime, PathTime)
 
         # Test atime property
         atime = test_file.atime
-        assert isinstance(atime, Time)
+        assert isinstance(atime, PathTime)
 
         # Test that time properties have age
         assert isinstance(ctime.age, Age)
@@ -169,9 +169,9 @@ def test_time_nonexistent_file():
     mtime = nonexistent.mtime
     atime = nonexistent.atime
 
-    assert isinstance(ctime, Time)
-    assert isinstance(mtime, Time)
-    assert isinstance(atime, Time)
+    assert isinstance(ctime, PathTime)
+    assert isinstance(mtime, PathTime)
+    assert isinstance(atime, PathTime)
 
     # Test that age is accessible (should return current time age)
     assert isinstance(ctime.age, Age)

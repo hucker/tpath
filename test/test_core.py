@@ -67,13 +67,13 @@ def test_property_access():
         assert hasattr(test_file, "atime")
 
         # Test property types
-        from tpath import Age, Size, Time
+        from tpath import Age, Size, PathTime
 
         assert isinstance(test_file.age, Age)
         assert isinstance(test_file.size, Size)
-        assert isinstance(test_file.ctime, Time)
-        assert isinstance(test_file.mtime, Time)
-        assert isinstance(test_file.atime, Time)
+        assert isinstance(test_file.ctime, PathTime)
+        assert isinstance(test_file.mtime, PathTime)
+        assert isinstance(test_file.atime, PathTime)
 
         print("✅ Property access tests passed")
 

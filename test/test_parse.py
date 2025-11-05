@@ -8,7 +8,7 @@ which enable parsing configuration strings into usable values.
 
 import pytest
 
-from tpath import Age, Size, Time
+from tpath import Age, Size, PathTime
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def age_test_cases():
 
 @pytest.fixture
 def time_test_cases():
-    """Fixture providing test cases for Time.parse."""
+    """Fixture providing test cases for PathTime.parse."""
     return [
         # (input_string, expected_year, expected_month, expected_day, expected_hour, expected_minute)
         ("2023-12-25", 2023, 12, 25, 0, 0),
@@ -161,7 +161,7 @@ def test_age_parse_invalid_input():
 
 
 def test_time_parse_cases(time_test_cases):
-    """Test Time.parse with various date formats."""
+    """Test PathTime.parse with various date formats."""
     for (
         input_str,
         expected_year,
@@ -170,7 +170,7 @@ def test_time_parse_cases(time_test_cases):
         expected_hour,
         expected_minute,
     ) in time_test_cases:
-        result = Time.parse(input_str)
+        result = PathTime.parse(input_str)
         assert result.year == expected_year, f"Year mismatch for '{input_str}'"
         assert result.month == expected_month, f"Month mismatch for '{input_str}'"
         assert result.day == expected_day, f"Day mismatch for '{input_str}'"
@@ -179,20 +179,20 @@ def test_time_parse_cases(time_test_cases):
 
 
 def test_time_parse_unix_timestamp():
-    """Test Time.parse with Unix timestamps."""
-    result = Time.parse("1640995200")  # Dec 31, 2021 16:00:00 local time
+    """Test PathTime.parse with Unix timestamps."""
+    result = PathTime.parse("1640995200")  # Dec 31, 2021 16:00:00 local time
     assert result.year == 2021
     assert result.month == 12
     assert result.day == 31
 
 
 def test_time_parse_invalid_input():
-    """Test that Time.parse raises ValueError for invalid input."""
+    """Test that PathTime.parse raises ValueError for invalid input."""
     with pytest.raises(ValueError, match="Unable to parse time string"):
-        Time.parse("invalid-date")
+        PathTime.parse("invalid-date")
 
     with pytest.raises(ValueError, match="Unable to parse time string"):
-        Time.parse("2023-13-40")  # Invalid month/day
+        PathTime.parse("2023-13-40")  # Invalid month/day
 
 
 def test_cache_config_parsing(config_examples):
