@@ -21,18 +21,27 @@ from ._core import TPath
 from ._size import Size
 from ._time import PathTime, TimeType
 from ._utils import matches
-from .chronos import Age, Cal
-from .pquery import PQuery, pquery
+from .chronos import Age, Cal, TimeSpan
+from .pquery import PathInput, PathLike, PathSequence, PQuery, pquery
 
 # All exports
 __all__ = [
+    # Core classes
     "TPath",
-    "Age",
-    "Cal",
     "Size",
     "PathTime",
     "TimeType",
-    "matches",
-    "pquery",
+    # Chronos utilities
+    "Age",
+    "Cal",
+    "TimeSpan",
+    # PQuery functionality
     "PQuery",
+    "pquery",
+    # Type aliases for type hints
+    "PathLike",
+    "PathInput",
+    "PathSequence",
+    # Utility functions
+    "matches",
 ]

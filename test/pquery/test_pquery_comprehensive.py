@@ -9,16 +9,11 @@ from src.tpath.pquery import PQuery, pquery
 
 def test_pquery_package_imports():
     """Test that all expected functions are available from the package."""
-    from src.tpath.pquery import pcount, pexists, pfilter, pfind, pfirst, pquery
+    from src.tpath.pquery import pquery
 
     # Test that they're callable
     assert callable(pquery)
     assert callable(PQuery)
-    assert callable(pfilter)
-    assert callable(pfind)
-    assert callable(pfirst)
-    assert callable(pexists)
-    assert callable(pcount)
 
 
 def test_pquery_fluent_api(tmp_path):

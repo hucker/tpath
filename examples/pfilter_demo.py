@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Demo script showing enhanced pfilter functionality with multiple paths and glob/rglob.
+Demo script showing enhanced PQuery functionality with multiple paths and glob/rglob.
 """
 
 import tempfile
 from pathlib import Path
 
-from tpath.pquery._pquery import pcount, pfilter, pfind
+from tpath.pquery import pquery
 
 
 def create_demo_structure():
@@ -44,24 +44,21 @@ def create_demo_structure():
 
 
 def demo_multiple_paths():
-    """Demonstrate pfilter with multiple starting paths."""
+    """Demonstrate pquery with multiple starting paths."""
     print("=== Multiple Paths Demo ===")
 
     temp_dir, src_dir, test_dir, docs_dir = create_demo_structure()
 
     # Search across multiple directories for Python files
-    python_files = pfind(
-        from_=[src_dir, test_dir],  # Multiple paths
-        query=lambda p: p.suffix == ".py",
-    )
+    python_files = list(pquery(from_=[src_dir, test_dir]).where(lambda p: p.suffix == ".py").files())
 
     print(f"Python files across src/ and test/: {len(python_files)}")
     for file in python_files:
         print(f"  - {file.relative_to(temp_dir)}")
 
     # Count files by type across all directories
-    total_py = pcount([src_dir, test_dir, docs_dir], lambda p: p.suffix == ".py")
-    total_md = pcount([src_dir, test_dir, docs_dir], lambda p: p.suffix == ".md")
+    total_py = pquery(from_=[src_dir, test_dir, docs_dir]).where(lambda p: p.suffix == ".py").count()
+    total_md = pquery(from_=[src_dir, test_dir, docs_dir]).where(lambda p: p.suffix == ".md").count()
 
     print(f"\nTotal .py files: {total_py}")
     print(f"Total .md files: {total_md}")
@@ -77,20 +74,12 @@ def demo_glob_vs_rglob(temp_dir):
 
     # Recursive search (default) - finds all Python files including nested
     recursive_py = list(
-        pfilter(
-            from_=src_dir,
-            query=lambda p: p.suffix == ".py",
-            recursive=True,  # Uses rglob - searches subdirectories
-        )
+        pquery(from_=src_dir).recursive(True).where(lambda p: p.suffix == ".py").files()
     )
 
     # Non-recursive search - only finds top-level Python files
     non_recursive_py = list(
-        pfilter(
-            from_=src_dir,
-            query=lambda p: p.suffix == ".py",
-            recursive=False,  # Uses glob - current directory only
-        )
+        pquery(from_=src_dir).recursive(False).where(lambda p: p.suffix == ".py").files()
     )
 
     print(f"Recursive search in src/: {len(recursive_py)} files")
@@ -108,11 +97,9 @@ def demo_complex_queries(temp_dir):
 
     # Find small Python files OR any test files
     complex_results = list(
-        pfilter(
-            from_=[temp_dir / "src", temp_dir / "test"],
-            query=lambda p: (p.suffix == ".py" and p.size.bytes < 50)
-            or "test" in p.name,
-        )
+        pquery(from_=[temp_dir / "src", temp_dir / "test"])
+        .where(lambda p: (p.suffix == ".py" and p.size.bytes < 50) or "test" in p.name)
+        .files()
     )
 
     print(f"Small Python files OR test files: {len(complex_results)}")
@@ -121,7 +108,7 @@ def demo_complex_queries(temp_dir):
 
 
 if __name__ == "__main__":
-    print("🔍 Enhanced pfilter Demo")
+    print("🔍 Enhanced PQuery Demo")
     print("=" * 50)
 
     temp_dir = demo_multiple_paths()
