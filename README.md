@@ -36,7 +36,7 @@ if age_days > 7 and size_mb > 100 and is_from_last_week:
     print(f"Large file from last week: {age_days:.1f} days, {size_mb:.1f} MB")
 ```
 
-### TPath: Properties for Everything You Need
+### TPath Solution: Properties for Everything You Need
 
 ```python
 from tpath import TPath
@@ -46,20 +46,6 @@ path = TPath("logfile.txt")
 
 if path.age.days > 7 and path.size.mb > 100 and path.mtime.cal.win_days(-7, 0):
     print(f"Large file from last week: {path.age.days:.1f} days, {path.size.mb:.1f} MB")
-```
-
-**No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.**
-
-### With TPath (Direct, Readable Properties)
-
-```python
-from tpath import TPath
-
-# Clean, readable, obvious
-path = TPath("logfile.txt")
-
-if path.age.days > 7 and path.size.mb > 100:
-    print(f"Large old file: {path.age.days:.1f} days, {path.size.mb:.1f} MB")
 ```
 
 **No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.**
@@ -91,195 +77,136 @@ pip install git+https://github.com/yourusername/tpath.git
 ## Quick Start
 
 ```python
-from tpath import TPath
+from tpath import TPath, matches
 
-# Basic usage - works like pathlib.Path
+# Create a TPath object - works like pathlib.Path (default time reference=dt.dateime.now())
 path = TPath("my_file.txt")
 
-# Age functionality
+# Direct property access - no calculations needed
 print(f"File is {path.age.days} days old")
-print(f"File is {path.age.hours} hours old")
+print(f"Size: {path.size.mb} MB")
+print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
+
+# Pattern matching
+print(f"Is Python file: {matches(path, '*.py')}")
+
+# File querying with PQuery
+from tpath import PQuery
+large_files = PQuery().where(lambda p: p.size.mb > 10).files()
+```
+
+## Core Features
+
+### TPath - Enhanced Path Objects
+
+TPath extends pathlib.Path with property-based access to file metadata:
+
+```python
+from tpath import TPath
+
+path = TPath("my_file.txt")
+
+# Age properties
+print(f"File is {path.age.days} days old")
 print(f"Modified {path.mtime.age.minutes} minutes ago")
 
-# Size functionality  
+# Size properties  
 print(f"File size: {path.size.mb} MB")
 print(f"File size: {path.size.gib} GiB")
 
-# Calendar window functionality
+# Calendar window properties
 print(f"Modified today: {path.mtime.cal.win_days(0)}")
 print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
-print(f"Created this month: {path.ctime.cal.win_months(0)}")
+```
 
-# Pattern matching functionality
+### Shell-Style Pattern Matching
+
+Standalone `matches()` function for shell-style pattern matching:
+
+```python
 from tpath import matches
-print(f"Is Python file: {matches(path, '*.py')}")
-print(f"Is log file: {matches(path, '*.log', '*.LOG', case_sensitive=False)}")
+
+# Basic pattern matching
+print(f"Is Python file: {matches('script.py', '*.py')}")
+print(f"Is log file: {matches('app.log', '*.log', '*.LOG', case_sensitive=False)}")
+
+# Multiple patterns and wildcards
+matches("backup_2024.zip", "backup_202[3-4]*")       # True
+matches("report.pdf", "*.pdf", "*.docx", "*.txt")    # True
 ```
 
 ## PQuery - Powerful File Querying
 
 **PQuery provides a fluent, chainable API for filtering files based on age, size, and other properties.** It's designed for complex file filtering operations with readable, expressive syntax.
 
-### Simple PQuery Examples
+### Basic Usage
 
 ```python
 from tpath import PQuery
 
-# Simple queries with default starting directory (current directory)
-q = PQuery()  # Starts from current directory by default
+# Simple queries - starts from current directory by default
+q = PQuery()
 
-# Find all Python files
+# Find files by extension
 python_files = q.where(lambda p: p.suffix == '.py').files()
 
-# Find files larger than 10MB
+# Find files by size
 large_files = q.where(lambda p: p.size.mb > 10).files()
 
-# Find files modified in the last 7 days
+# Find files by age
 recent_files = q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files()
 
-# Find old, large log files
+# Complex combined criteria
 old_large_logs = (q
     .where(lambda p: p.suffix == '.log' and p.size.mb > 50 and p.age.days > 30)
     .files())
 ```
 
-### Complex PQuery Examples
+### Method Chaining
 
 ```python
-from tpath import PQuery
-from pathlib import Path
-
-# Complex multi-criteria file cleanup query
-cleanup_query = (PQuery()
-    .from_("/var/log")
-    .recursive(True)
-    .where(lambda p: p.suffix in ['.log', '.tmp', '.cache'] and 
-                     p.age.days > 30 and 
-                     p.size.mb > 1 and 
-                     not p.mtime.cal.win_days(-7, 0))
+# Build complex queries step by step
+cleanup_files = (PQuery()
+    .from_("/var/log")              # Set starting directory
+    .recursive(True)                # Include subdirectories
+    .where(lambda p: p.suffix in ['.log', '.tmp'] and p.age.days > 30)
+    .files()
 )
 
 # Execute and process results
-old_files = cleanup_query.files()
-total_size = sum(f.size.bytes for f in old_files)
-print(f"Found {len(old_files)} files totaling {total_size // 1024**2} MB")
-
-# Project analysis query - find large source files that haven't been touched recently
-project_analysis = (PQuery()
-    .from_("./src")
-    .recursive(True)
-    .where(lambda p: p.suffix in ['.py', '.js', '.ts', '.cpp', '.h'] and
-                     p.size.kb > 50 and  # Larger source files
-                     p.mtime.age.days > 90 and  # Not modified in 90 days
-                     p.name != '__init__.py')  # Exclude init files
-)
-
-stale_code = project_analysis.files()
-for file in sorted(stale_code, key=lambda f: f.size.bytes, reverse=True):
-    print(f"{file.name}: {file.size.kb:.1f} KB, {file.age.days} days old")
-
-# Backup candidate identification
-backup_candidates = (PQuery()
-    .from_("/home/user/documents")
-    .recursive(True)
-    .where(lambda p: p.suffix in ['.doc', '.docx', '.pdf', '.xlsx'] and
-                     p.size.mb > 5 and  # Important files are usually larger
-                     p.ctime.cal.win_years(-1, 0) and  # Created within last year
-                     p.mtime.cal.win_months(-1, 0))  # Modified within last month
-)
-
-important_files = backup_candidates.files()
-print(f"Found {len(important_files)} important files for backup")
-```
-
-### PQuery Method Chaining
-
-PQuery supports fluent method chaining for building complex queries:
-
-```python
-# Method chaining allows building complex queries step by step
-query = (PQuery()
-    .from_("/data")           # Set starting directory
-    .recursive(True)             # Include subdirectories
-    .where(lambda p: p.is_file() and p.size.gb > 1 and p.age.months > 6)  # Combined filters
-)
-
-# Execute when ready
-results = query.files()
+total_size = sum(f.size.bytes for f in cleanup_files)
+print(f"Found {len(cleanup_files)} files totaling {total_size // 1024**2} MB")
 ```
 
 ### Result Transformation with select()
 
-Use `.select()` to transform results into more useful formats:
+Transform results into more useful formats:
 
 ```python
-from tpath import PQuery
-
-# Get just file names and sizes  
+# Get file names and sizes as tuples
 file_info = (PQuery()
     .from_("./logs")
-    .where(lambda p: p.suffix == '.log' and p.age.days < 7)
+    .where(lambda p: p.suffix == '.log')
     .select(lambda p: (p.name, p.size.mb))
 )
 # Returns: [('app.log', 2.3), ('error.log', 0.8), ...]
 
-# Get formatted strings
-file_reports = (PQuery()
-    .from_("./src") 
-    .where(lambda p: p.suffix == '.py' and p.size.kb > 50)
-    .select(lambda p: f"{p.resolve()}: {p.size.kb:.1f} KB, {p.age.days} days old")
-)
-# Returns: ['/path/to/large.py: 125.3 KB, 45 days old', ...]
-
-# Extract specific properties
-large_file_ages = (PQuery()
-    .from_("./data")
-    .where(lambda p: p.size.gb > 1)
-    .select(lambda p: p.age.days)
-)
-# Returns: [23.5, 156.2, 89.1, ...]
-
-# Create custom objects/dictionaries
+# Create custom dictionaries
 file_metadata = (PQuery()
     .from_("./documents")
     .where(lambda p: p.suffix in ['.pdf', '.docx'])
     .select(lambda p: {
-        'path': str(p.resolve()),
+        'name': p.name,
         'size_mb': p.size.mb,
-        'modified_days_ago': p.mtime.age.days,
-        'created': p.ctime.datetime.strftime('%Y-%m-%d')
+        'age_days': p.mtime.age.days
     })
 )
-# Returns: [{'path': '/docs/report.pdf', 'size_mb': 2.1, ...}, ...]
-
-# Alternative: Create dictionary with filenames as keys
-files = (PQuery()
-    .from_("./documents")
-    .where(lambda p: p.suffix in ['.pdf', '.docx'])
-    .files()
-)
-
-file_metadata_dict = {
-    f.name: {
-        'path': str(f.resolve()),
-        'size_mb': f.size.mb,
-        'modified_days_ago': f.mtime.age.days,
-        'created': f.ctime.datetime.strftime('%Y-%m-%d')
-    }
-    for f in files
-}
-# Returns: {'report.pdf': {'path': '/docs/report.pdf', 'size_mb': 2.1, ...}, ...}
+# Returns: [{'name': 'report.pdf', 'size_mb': 2.1, 'age_days': 5}, ...]
 ```
 
-
-
-### Additional PQuery Utilities
-
-PQuery provides several utility methods for common operations:
+### Utility Methods
 
 ```python
-from tpath import PQuery
-
 # Check if any files match (without loading all results)
 has_large_files = (PQuery()
     .from_("./data")
@@ -287,102 +214,55 @@ has_large_files = (PQuery()
     .exists()
 )
 
-# Count matching files (without loading all results) 
+# Count matching files
 num_python_files = (PQuery()
-    .from_("./src") 
+    .from_("./src")
     .where(lambda p: p.suffix == '.py')
     .count()
 )
 
-# Get just the first match
+# Get first match
 latest_log = (PQuery()
     .from_("./logs")
     .where(lambda p: p.suffix == '.log')
     .first()  # Returns TPath or None
 )
-
-# Example: Find the largest file in a directory
-largest_file = (PQuery()
-    .from_("./downloads")
-    .where(lambda p: p.is_file())
-    .select(lambda p: (p.size.bytes, p))  # (size, path) tuples
-)
-if largest_file:
-    max_size, max_file = max(largest_file, key=lambda x: x[0])
-    print(f"Largest file: {max_file.name} ({max_file.size.mb:.1f} MB)")
 ```
 
-### Efficient Top-K and Sorting with take() and sort()
-
-PQuery provides optimized methods for getting the "best" files and sorting results:
+### Sorting and Top-K Selection
 
 ```python
-from tpath import PQuery
-
-# Get top 10 largest files (most efficient for top-k)
+# Get top 10 largest files (efficient for top-k)
 largest_files = (PQuery()
     .from_("./data")
-    .take(10, key=lambda p: p.size.bytes)  # Uses heapq for O(n log k) performance
+    .take(10, key=lambda p: p.size.bytes)
 )
 
-# Get 5 oldest files
-oldest_files = (PQuery()
+# Sort all files by modification time
+all_by_time = (PQuery()
     .from_("./logs")
-    .take(5, key=lambda p: p.mtime.timestamp, reverse=False)
+    .sort(key=lambda p: p.mtime.timestamp, reverse=True)
 )
 
-# Multi-column sorting: largest files, then alphabetical by name
-best_files = (PQuery()
-    .from_("./documents")
-    .take(10, key=lambda p: (p.size.bytes, p.name))
-)
-
-# Sort ALL files when you need complete ordering
-all_by_size = (PQuery()
-    .from_("./data")
-    .sort(key=lambda p: p.size.bytes, reverse=True)  # Full sort O(n log n)
-)
-
-# Sort by multiple criteria: directory first, then name
-organized = (PQuery()
-    .from_("./project")
-    .sort(key=lambda p: (p.parent.name, p.name))
-)
-
-# Performance comparison:
-# take() - O(n log k) - Use when you only need top/bottom k items
-# sort() - O(n log n) - Use when you need all items sorted
-
-# Examples:
-cleanup_candidates = (PQuery()
-    .from_("/var/log")
-    .where(lambda p: p.age.days > 30)
-    .take(50, key=lambda p: p.size.bytes)  # 50 largest old files
-)
-
-project_files = (PQuery()
-    .from_("./src")
-    .where(lambda p: p.suffix == '.py')
-    .sort(key=lambda p: p.size.bytes)  # All Python files by size
-)
+# Performance tip: use take() for top-N, sort() for complete ordering
 ```
 
-### Lazy Evaluation and Performance
+### Performance Notes
 
-PQuery uses lazy evaluation - filters are only applied when you call `.files()`:
+PQuery uses lazy evaluation - filters are only applied when you call execution methods:
 
 ```python
 # Build the query (no filesystem operations yet)
 q = PQuery().from_("/large/directory").where(lambda p: p.size.gb > 5)
 
 # Only now does it scan the filesystem
-large_files = q.files()  
+large_files = q.files()  # Execute the query
 
-# Reuse the same query multiple times
+# Reuse queries efficiently
 more_files = q.where(lambda p: p.suffix == '.mp4').files()
 ```
 
-## Shell-Style Pattern Matching with matches()
+## Pattern Matching with matches()
 
 **TPath provides a standalone `matches()` function for shell-style pattern matching.** This function works with any path type and integrates seamlessly with PQuery for powerful file filtering.
 
@@ -524,7 +404,9 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 - Pattern compilation is cached internally for repeated use
 - Use `full_path=False` (default) when possible for better performance
 
-## Calendar Window Filtering
+## Advanced Features
+
+### Calendar Window Filtering
 
 **TPath provides intuitive calendar window filtering to check if files fall within specific time ranges.** This is perfect for finding files from "last week", "this month", "last quarter", etc.
 
@@ -645,7 +527,7 @@ path.age.days < 7  # Exactly less than 7 * 24 hours
 
 Calendar windows are perfect for **"last week", "this month", "last quarter"** type queries where you want natural calendar boundaries, not precise 168-hour periods.
 
-## Config File Integration with parse Methods
+### Config File Integration
 
 **Perfect for reading configuration values!** All property types support parsing from strings:
 
