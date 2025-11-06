@@ -94,7 +94,13 @@ print(f"Is Python file: {matches(path, '*.py')}")
 
 # File querying with PQuery
 from tpath import PQuery
-large_files = PQuery().where(lambda p: p.size.mb > 10).files()
+
+# Stream processing (memory efficient)
+for file in PQuery().where(lambda p: p.size.mb > 10).files():
+    process_large_file(file)
+
+# Materialize when you need a list
+large_files = list(PQuery().where(lambda p: p.size.mb > 10).files())
 ```
 
 ## Core Features
@@ -154,6 +160,8 @@ backup_files = (PQuery()
 
 **PQuery provides a fluent, chainable API for filtering files based on age, size, and other properties.** It's designed for complex file filtering operations with readable, expressive syntax.
 
+> **Note**: PQuery is NOT SQL and is not meant to replicate all SQL features. It provides a paradigm with SQL-like characteristics for file operations, enabling semantically similar operations like filtering, sorting, and result transformation in a familiar pattern.
+
 ### Basic Usage
 
 ```python
@@ -162,19 +170,51 @@ from tpath import PQuery
 # Simple queries - starts from current directory by default
 q = PQuery()
 
-# Find files by extension
-python_files = q.where(lambda p: p.suffix == '.py').files()
+# Find files by extension (streaming)
+for file in q.where(lambda p: p.suffix == '.py').files():
+    process_python_file(file)
+
+# Get list when needed
+python_files = list(q.where(lambda p: p.suffix == '.py').files())
 
 # Find files by size
-large_files = q.where(lambda p: p.size.mb > 10).files()
+large_files = list(q.where(lambda p: p.size.mb > 10).files())
 
 # Find files by calendar window
-recent_files = q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files()
+recent_files = list(q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files())
 
 # Complex combined criteria
-old_large_logs = (q
+old_large_logs = list(q
     .where(lambda p: p.suffix == '.log' and p.size.mb > 50 and p.age.days > 30)
     .files())
+```
+
+### Type Safety Best Practices
+
+For optimal type checking and IDE support, consider using typed functions instead of inline lambdas:
+
+```python
+from tpath import PQuery, TPath
+
+# Instead of inline lambdas (limited type inference)
+large_files = PQuery().where(lambda p: p.size.mb > 10).files()
+
+# Use typed functions for better type checking
+def is_large_file(path: TPath) -> bool:
+    """Check if file is larger than 10MB."""
+    return path.size.mb > 10
+
+def get_file_info(path: TPath) -> dict[str, str | float]:
+    """Extract file metadata for reporting."""
+    return {
+        'name': path.name,
+        'size_mb': path.size.mb,
+        'age_days': path.age.days
+    }
+
+# Better type safety and IDE support
+large_files = PQuery().where(is_large_file).files()
+file_info = PQuery().where(is_large_file).select(get_file_info)  # Returns list[Any]
 ```
 
 ### Method Chaining/Fluent Interface
@@ -279,6 +319,36 @@ all_by_time = (PQuery()
 # Performance tip: use take() for top-N, sort() for complete ordering
 ```
 
+### Streaming vs. Materialization
+
+**PQuery uses streaming by default for memory efficiency:**
+
+```python
+# Streaming (memory efficient) - processes one file at a time
+for file in PQuery().from_("./large/dataset").files():
+    process_file(file)  # Starts immediately, uses O(1) memory
+    if should_stop():
+        break  # Can exit early
+
+# Materialization (when you need a list)
+all_files = list(PQuery().from_("./data").files())  # O(n) memory
+count = len(all_files)      # Can get length
+first = all_files[0]        # Can index
+for file in all_files:      # Can iterate multiple times
+    process_file(file)
+
+# Transform results with select (also streaming)
+for name in PQuery().from_("./logs").select(lambda p: p.name):
+    print(name)  # Streams file names
+
+# Materialize selected results when needed
+file_names = list(PQuery().from_("./logs").select(lambda p: p.name))
+```
+
+**When to use each approach:**
+- **Streaming**: Large datasets, one-time processing, memory constrained
+- **Lists**: Need length/indexing, multiple iterations, small datasets
+
 ### Performance and Efficiency
 
 PQuery uses lazy evaluation - filters are only applied when you call execution methods:
@@ -299,25 +369,33 @@ more_files = q.where(lambda p: p.suffix == '.mp4').files()
 Different operations have vastly different performance characteristics:
 
 ```python
-# ⚡ MOST EFFICIENT - Early termination operations
+# ⚡ MOST EFFICIENT - Early termination operations  
 query.take(10)                    # O(10) - stops after 10 files
 query.first()                     # O(1) - stops after first match  
 query.exists()                    # O(1) - stops after first match
 query.distinct().take(10)         # O(k≤n) - stops after 10 unique files
 
-# 📈 EFFICIENT - Heap-based top-N selection  
-query.take(10, key=lambda p: p.size.bytes)  # O(n + 10 log n) - heap algorithm
+# ⚡ STREAMING - Memory efficient processing
+for file in query.files():        # O(1) memory - processes one file at a time
+    process_file(file)
 
-# 🐌 EXPENSIVE - Must process all files
-query.files()                     # O(n) - returns all results
+# 📈 EFFICIENT - Heap-based top-N selection  
+query.take(10, key=lambda p: p.size.bytes)           # O(n + 10 log n) - top 10 largest
+query.take(10, key=lambda p: p.size.bytes, reverse=False)  # O(n + 10 log n) - top 10 smallest
+query.take(5, key=lambda p: p.mtime.timestamp)       # O(n + 5 log n) - 5 newest files
+
+# 🐌 EXPENSIVE - Must materialize full results
+list(query.files())               # O(n) memory - loads all files into list
 query.count()                     # O(n) - must count all matches
 query.sort()                      # O(n log n) - full sort required
 
 # 💡 Performance Tips:
+# - Use streaming: for file in query.files() for memory efficiency
+# - Use list() only when you need random access or length
 # - Use distinct().take(n) for unique results with early stopping
-# - Use take(n, key=...) instead of sort().take(n) when possible  
+# - Use take(n, key=...) instead of list(query.sort().take(n)) when possible  
 # - Chain filters early: .where().distinct().take() is optimal order
-# - Use exists() instead of len(files()) > 0 to check for matches
+# - Use exists() instead of len(list(query.files())) > 0 to check for matches
 ```
 
 ## Pattern Matching with `matches()`

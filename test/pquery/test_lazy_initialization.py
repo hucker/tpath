@@ -28,7 +28,7 @@ def test_default_constructor_lazy_initialization():
             os.chdir(str(temp_path))
             
             # When we execute the query, defaults should be applied
-            files = query.files()
+            files = list(query.files())
             
             # Now working state should be populated
             assert len(query.start_paths) == 1
@@ -55,7 +55,7 @@ def test_constructor_with_from_parameter():
         assert query._query_func is None
         
         # Execute query to apply defaults
-        files = query.files()
+        files = list(query.files())
         
         # Should use the provided from_ path
         assert len(query.start_paths) == 1
@@ -78,7 +78,7 @@ def test_constructor_with_recursive_parameter():
         
         # Non-recursive query
         query = PQuery(from_=temp_dir, recursive=False)
-        files = query.files()
+        files = list(query.files())
         
         assert query.is_recursive is False
         assert len(files) == 1  # Only top-level file
@@ -86,7 +86,7 @@ def test_constructor_with_recursive_parameter():
         
         # Recursive query
         query2 = PQuery(from_=temp_dir, recursive=True)
-        files2 = query2.files()
+        files2 = list(query2.files())
         
         assert query2.is_recursive is True
         assert len(files2) == 2  # Both files
@@ -103,7 +103,7 @@ def test_constructor_with_where_parameter():
         
         # Custom where function
         query = PQuery(from_=temp_dir, where=lambda p: p.suffix == ".py")
-        files = query.files()
+        files = list(query.files())
         
         assert len(files) == 1
         assert files[0].name == "test.py"
@@ -121,7 +121,7 @@ def test_constructor_all_parameters():
             recursive=False,
             where=lambda p: p.size.bytes > 500
         )
-        files = query.files()
+        files = list(query.files())
         
         assert len(files) == 1
         assert files[0].name == "large.txt"
@@ -140,7 +140,7 @@ def test_fluent_methods_override_constructor():
             where=lambda p: p.suffix == ".py"  # Would match only .py
         ).where(lambda p: p.suffix == ".txt")  # Override to match only .txt
         
-        files = query.files()
+        files = list(query.files())
         
         assert len(files) == 1
         assert files[0].name == "test.txt"
@@ -161,7 +161,7 @@ def test_lazy_initialization_with_chaining():
         assert query.start_paths == []
         
         # Execute and verify
-        files = query.files()
+        files = list(query.files())
         assert len(files) == 1
         assert files[0].name == "test.txt"
         
@@ -177,7 +177,7 @@ def test_default_where_filters_files_only():
         (temp_path / "subdir").mkdir()
         
         query = PQuery(from_=temp_dir)
-        files = query.files()
+        files = list(query.files())
         
         # Should only return the file, not the directory
         assert len(files) == 1

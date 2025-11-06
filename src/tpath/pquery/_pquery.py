@@ -240,36 +240,44 @@ class PQuery:
                 # Handle cases where we can't read the directory
                 continue
 
-    def files(self) -> list[TPath]:
+    def files(self) -> Iterator[TPath]:
         """
-        Execute the query and return matching files as a list.
+        Execute the query and return matching files as an iterator.
 
         Returns:
-            list[TPath]: List of matching file paths
+            Iterator[TPath]: Iterator of matching file paths
 
         Examples:
-            recent_logs = pquery(from_="/logs").where(lambda p: p.age.hours < 24).files()
-            unique_files = pquery(from_=paths).distinct().files()  # Deduplicated at generator level
+            # Stream processing (memory efficient)
+            for file in pquery(from_="/logs").where(lambda p: p.age.hours < 24).files():
+                process_file(file)
+            
+            # Materialize when needed
+            all_files = list(pquery(from_=paths).distinct().files())
         """
-        return list(self._iter_files())
+        return self._iter_files()
 
     # Remove the old distinct() method - it will be on PQueryResult instead
 
-    def select(self, selector: Callable[[TPath], Any]) -> list[Any]:
+    def select(self, selector: Callable[[TPath], Any]) -> Iterator[Any]:
         """
-        Execute the query and return selected properties from matching files.
+        Execute the query and return selected properties from matching files as an iterator.
 
         Args:
             selector: Lambda function that takes a TPath and returns any value
 
         Returns:
-            list[Any]: List of selected values from matching files
+            Iterator[Any]: Iterator of selected values from matching files
 
-        Example:
-            file_sizes = pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes)
-            file_names = pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name)
+        Examples:
+            # Stream processing (memory efficient)
+            for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
+                process_size(size)
+            
+            # Materialize when needed
+            file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
         """
-        return [selector(path) for path in self._iter_files()]
+        return (selector(path) for path in self._iter_files())
 
     def first(self) -> TPath | None:
         """
@@ -471,7 +479,7 @@ def pfind(
     recursive: bool = True,
 ) -> list[TPath]:
     """DEPRECATED: Use PQuery().from_().where().files() instead."""
-    return pquery(from_, recursive).where(query).files()
+    return list(pquery(from_, recursive).where(query).files())
 
 
 def pfirst(

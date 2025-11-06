@@ -41,11 +41,11 @@ def test_pquery_fluent_api(tmp_path):
     assert hasattr(query, '__iter__')
     
     # Test that methods return expected types
-    files = query.files()
+    files = list(query.files())
     assert isinstance(files, list)
     assert len(files) == 1
     
-    names = query.select(lambda p: p.name)
+    names = list(query.select(lambda p: p.name)
     assert isinstance(names, list)
     assert len(names) == 1
     assert names[0] == "file1.txt"
@@ -72,12 +72,12 @@ def test_pquery_error_handling(tmp_path):
     query = pquery(from_=tmp_path)
     
     # Should work with default where function (files only)
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "test.txt"
     
     # Test select and first also work
-    names = query.select(lambda p: p.name)
+    names = list(query.select(lambda p: p.name)
     assert names == ["test.txt"]
     
     first_file = query.first()
@@ -94,7 +94,7 @@ def test_pquery_nonexistent_paths():
     """Test behavior with nonexistent paths."""
     # Test with nonexistent single path
     query = pquery(from_="/nonexistent/path").where(lambda p: True)
-    assert query.files() == []
+    assert list(query.files()) == []
     assert query.select(lambda p: p.name) == []
     assert query.first() is None
     assert query.exists() is False
@@ -106,7 +106,7 @@ def test_pquery_nonexistent_paths():
     (temp_dir / "test.txt").write_text("test")
     
     query = pquery(from_=[str(temp_dir), "/nonexistent"]).where(lambda p: True)
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "test.txt"
 
@@ -119,13 +119,13 @@ def test_pquery_file_vs_directory_input(tmp_path):
     
     # Test with file as input - should test just that file
     query = pquery(from_=test_file).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "test.txt"
     
     # Test with file that doesn't match query
     query = pquery(from_=test_file).where(lambda p: p.suffix == ".py")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 0
 
 
@@ -136,7 +136,7 @@ def test_pquery_edge_cases(tmp_path):
     empty_dir.mkdir()
     
     query = pquery(from_=empty_dir).where(lambda p: True)
-    assert query.files() == []
+    assert list(query.files()) == []
     assert query.count() == 0
     
     # Directory with only subdirectories (no files)
@@ -144,12 +144,12 @@ def test_pquery_edge_cases(tmp_path):
     sub_dir.mkdir()
     
     query = pquery(from_=empty_dir).where(lambda p: True)
-    assert query.files() == []  # Should only return files, not directories
+    assert list(query.files()) == []  # Should only return files, not directories
     
     # Very specific query that matches nothing
     (tmp_path / "file.txt").write_text("content")
     query = pquery(from_=tmp_path).where(lambda p: p.name == "nonexistent.txt")
-    assert query.files() == []
+    assert list(query.files()) == []
     assert query.first() is None
     assert query.exists() is False
 
@@ -172,7 +172,7 @@ def test_pquery_recursive_behavior(tmp_path):
     (level3 / "level3.txt").write_text("level3")
     
     # Test recursive (default)
-    recursive_files = pquery(from_=tmp_path, recursive=True).where(lambda p: p.suffix == ".txt").files()
+    recursive_files = list(pquery(from_=tmp_path, recursive=True).where(lambda p: p.suffix == ".txt").files())
     assert len(recursive_files) == 4
     names = [f.name for f in recursive_files]
     assert "root.txt" in names
@@ -181,12 +181,12 @@ def test_pquery_recursive_behavior(tmp_path):
     assert "level3.txt" in names
     
     # Test non-recursive
-    non_recursive_files = pquery(from_=tmp_path, recursive=False).where(lambda p: p.suffix == ".txt").files()
+    non_recursive_files = list(pquery(from_=tmp_path, recursive=False).where(lambda p: p.suffix == ".txt").files())
     assert len(non_recursive_files) == 1
     assert non_recursive_files[0].name == "root.txt"
     
     # Test non-recursive from intermediate level
-    level1_files = pquery(from_=level1, recursive=False).where(lambda p: p.suffix == ".txt").files()
+    level1_files = list(pquery(from_=level1, recursive=False).where(lambda p: p.suffix == ".txt").files())
     assert len(level1_files) == 1
     assert level1_files[0].name == "level1.txt"
 
@@ -204,7 +204,7 @@ def test_pquery_complex_selectors(tmp_path):
     py_file.write_text("print('hello')")
     
     # Test selecting tuples
-    file_info = pquery(from_=tmp_path).where(lambda p: True).select(
+    file_info = list(pquery(from_=tmp_path).where(lambda p: True).select(
         lambda p: (p.name, p.suffix, p.size.bytes)
     )
     
@@ -215,7 +215,7 @@ def test_pquery_complex_selectors(tmp_path):
         assert isinstance(size, int)
     
     # Test selecting computed values
-    relative_sizes = pquery(from_=tmp_path).where(lambda p: True).select(
+    relative_sizes = list(pquery(from_=tmp_path).where(lambda p: True).select(
         lambda p: p.size.bytes / 100  # Size in hundreds of bytes
     )
     
@@ -224,7 +224,7 @@ def test_pquery_complex_selectors(tmp_path):
         assert isinstance(size_ratio, float)
     
     # Test complex selector with conditionals
-    file_categories = pquery(from_=tmp_path).where(lambda p: True).select(
+    file_categories = list(pquery(from_=tmp_path).where(lambda p: True).select(
         lambda p: "large" if p.size.bytes > 500 else "small"
     )
     

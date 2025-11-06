@@ -22,7 +22,7 @@ def test_pquery_default_constructor(tmp_path):
         
         # Test default constructor
         query = PQuery().where(lambda p: True)
-        files = query.files()
+        files = list(query.files())
         
         assert len(files) == 2
         names = [f.name for f in files]
@@ -46,13 +46,13 @@ def test_pquery_fluent_from_methods(tmp_path):
     
     # Test single from_()
     query = PQuery().from_(dir1).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "file_dir1.txt"
     
     # Test chaining from_() calls
     query = PQuery().from_(dir1).from_(dir2).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
     assert "file_dir1.txt" in names
@@ -60,7 +60,7 @@ def test_pquery_fluent_from_methods(tmp_path):
     
     # Test multiple from_() calls
     query = PQuery().from_(dir1).from_(dir2).from_(dir3).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 3
     names = [f.name for f in files]
     assert "file_dir1.txt" in names
@@ -79,7 +79,7 @@ def test_pquery_recursive_method(tmp_path):
     
     # Test recursive(True) - default
     query = PQuery().from_(tmp_path).recursive(True).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
     assert "root.txt" in names
@@ -87,7 +87,7 @@ def test_pquery_recursive_method(tmp_path):
     
     # Test recursive(False)
     query = PQuery().from_(tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "root.txt"
 
@@ -110,16 +110,16 @@ def test_pquery_method_chaining_order(tmp_path):
     
     # Order 1: from -> recursive -> where
     query1 = PQuery().from_(dir1).from_(dir2).recursive(False).where(lambda p: p.suffix == ".txt")
-    files1 = query1.files()
+    files1 = list(query1.files())
     
     # Order 2: recursive -> from -> where  
     query2 = PQuery().recursive(False).from_(dir1).from_(dir2).where(lambda p: p.suffix == ".txt")
-    files2 = query2.files()
+    files2 = list(query2.files())
     
     # Order 3: where -> from -> recursive (this should fail since where must be last)
     # But we can test: recursive -> where -> from (where overrides the query, so this should work if we re-call where)
     query3 = PQuery().recursive(False).from_(dir1).from_(dir2).where(lambda p: p.suffix == ".txt")
-    files3 = query3.files()
+    files3 = list(query3.files())
     
     # All should find the same files (only top-level .txt files)
     assert len(files1) == len(files2) == len(files3) == 2
@@ -143,19 +143,19 @@ def test_pquery_convenience_function_compatibility(tmp_path):
     try:
         os.chdir(str(tmp_path))
         
-        files = pquery().where(lambda p: True).files()
+        files = list(pquery().where(lambda p: True).files())
         assert len(files) == 2
         
     finally:
         os.chdir(original_cwd)
     
     # Test with from_ argument
-    files = pquery(from_=tmp_path).where(lambda p: p.suffix == ".txt").files()
+    files = list(pquery(from_=tmp_path).where(lambda p: p.suffix == ".txt").files())
     assert len(files) == 1
     assert files[0].name == "test1.txt"
     
     # Test with list of paths
-    files = pquery(from_=[tmp_path]).where(lambda p: True).files()
+    files = list(pquery(from_=[tmp_path]).where(lambda p: True).files())
     assert len(files) == 2
 
 
@@ -171,10 +171,10 @@ def test_pquery_fluent_vs_convenience_equivalence(tmp_path):
         (d / "file.py").write_text("code")
     
     # Fluent API
-    fluent_files = PQuery().from_(dir1).from_(dir2).recursive(True).where(lambda p: p.suffix == ".txt").files()
+    fluent_files = list(PQuery().from_(dir1).from_(dir2).recursive(True).where(lambda p: p.suffix == ".txt").files())
     
     # Convenience function
-    convenience_files = pquery(from_=[dir1, dir2], recursive=True).where(lambda p: p.suffix == ".txt").files()
+    convenience_files = list(pquery(from_=[dir1, dir2], recursive=True).where(lambda p: p.suffix == ".txt").files())
     
     # Should produce same results
     assert len(fluent_files) == len(convenience_files) == 2
@@ -205,7 +205,7 @@ def test_pquery_complex_fluent_example(tmp_path):
     # Complex query: Find files from src and test directories that are either:
     # - Python files larger than 500 bytes, OR
     # - Any files with "test" in the name
-    large_py_or_test_files = (PQuery()
+    large_py_or_test_files = list(PQuery()
                              .from_(src_dir)
                              .from_(test_dir) 
                              .recursive(True)
@@ -232,12 +232,12 @@ def test_pquery_error_handling_fluent(tmp_path):
     query = PQuery().from_(tmp_path)
     
     # Should not raise error and should return files only (not directories)
-    files = query.files()
+    files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "test.txt"
     assert files[0].is_file()
     
     # Test error handling for nonexistent paths (should be handled gracefully)
     nonexistent_query = PQuery().from_(tmp_path / "nonexistent")
-    files = nonexistent_query.files()
+    files = list(nonexistent_query.files())
     assert len(files) == 0  # Should return empty list, not error

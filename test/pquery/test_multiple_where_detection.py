@@ -32,11 +32,10 @@ def test_single_where_with_combined_logic_works():
         (temp_path / "large.log").write_text("x" * 1000)    # 1000 bytes, .log
         
         # Single where with combined logic should work
-        results = (PQuery()
+        results = list(PQuery()
             .from_(temp_dir)
             .where(lambda p: p.suffix == '.txt' and p.size.bytes > 500)
-            .files()
-        )
+            .files())
         
         # Should find only large.txt
         assert len(results) == 1

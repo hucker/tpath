@@ -181,10 +181,10 @@ def test_pquery_basic_functionality(tmp_path):
     (tmp_path / "test.py").write_text("print('hello')")
 
     # Test basic querying with files()
-    small_files = pquery(from_=tmp_path).where(lambda p: p.size.bytes < 100).files()
+    small_files = list(pquery(from_=tmp_path).where(lambda p: p.size.bytes < 100).files())
     assert len(small_files) == 2  # small.txt and test.py
 
-    py_files = pquery(from_=tmp_path).where(lambda p: p.suffix == ".py").files()
+    py_files = list(pquery(from_=tmp_path).where(lambda p: p.suffix == ".py").files())
     assert len(py_files) == 1
     assert py_files[0].name == "test.py"
 
@@ -197,19 +197,19 @@ def test_pquery_select_functionality(tmp_path):
     (tmp_path / "file3.log").write_text("content3")
 
     # Test selecting file names
-    names = pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.name)
+    names = list(pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.name)
     assert len(names) == 3
     assert "file1.txt" in names
     assert "file2.py" in names
     assert "file3.log" in names
 
     # Test selecting file sizes
-    sizes = pquery(from_=tmp_path).where(lambda p: p.suffix == ".txt").select(lambda p: p.size.bytes)
+    sizes = list(pquery(from_=tmp_path).where(lambda p: p.suffix == ".txt").select(lambda p: p.size.bytes)
     assert len(sizes) == 1
     assert sizes[0] == 8  # "content1"
 
     # Test selecting suffixes
-    suffixes = pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.suffix)
+    suffixes = list(pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.suffix)
     assert set(suffixes) == {".txt", ".py", ".log"}
 
 
@@ -252,11 +252,11 @@ def test_pquery_multiple_paths(tmp_path):
     (dir2 / "file4.log").write_text("content4")
 
     # Test with list of paths
-    txt_files = pquery(from_=[dir1, dir2]).where(lambda p: p.suffix == ".txt").files()
+    txt_files = list(pquery(from_=[dir1, dir2]).where(lambda p: p.suffix == ".txt").files())
     assert len(txt_files) == 2
 
     # Test select with multiple paths
-    names = pquery(from_=[dir1, dir2]).where(lambda p: True).select(lambda p: p.name)
+    names = list(pquery(from_=[dir1, dir2]).where(lambda p: True).select(lambda p: p.name)
     assert len(names) == 4
 
     # Test count with multiple paths
