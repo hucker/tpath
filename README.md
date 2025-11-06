@@ -109,6 +109,11 @@ print(f"File size: {path.size.gib} GiB")
 print(f"Modified today: {path.mtime.cal.win_days(0)}")
 print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
 print(f"Created this month: {path.ctime.cal.win_months(0)}")
+
+# Pattern matching functionality
+from tpath import matches
+print(f"Is Python file: {matches(path, '*.py')}")
+print(f"Is log file: {matches(path, '*.log', '*.LOG', case_sensitive=False)}")
 ```
 
 ## PQuery - Powerful File Querying
@@ -203,6 +208,165 @@ query = (PQuery()
 results = query.files()
 ```
 
+### Result Transformation with select()
+
+Use `.select()` to transform results into more useful formats:
+
+```python
+from tpath import PQuery
+
+# Get just file names and sizes  
+file_info = (PQuery()
+    .from_("./logs")
+    .where(lambda p: p.suffix == '.log' and p.age.days < 7)
+    .select(lambda p: (p.name, p.size.mb))
+)
+# Returns: [('app.log', 2.3), ('error.log', 0.8), ...]
+
+# Get formatted strings
+file_reports = (PQuery()
+    .from_("./src") 
+    .where(lambda p: p.suffix == '.py' and p.size.kb > 50)
+    .select(lambda p: f"{p.resolve()}: {p.size.kb:.1f} KB, {p.age.days} days old")
+)
+# Returns: ['/path/to/large.py: 125.3 KB, 45 days old', ...]
+
+# Extract specific properties
+large_file_ages = (PQuery()
+    .from_("./data")
+    .where(lambda p: p.size.gb > 1)
+    .select(lambda p: p.age.days)
+)
+# Returns: [23.5, 156.2, 89.1, ...]
+
+# Create custom objects/dictionaries
+file_metadata = (PQuery()
+    .from_("./documents")
+    .where(lambda p: p.suffix in ['.pdf', '.docx'])
+    .select(lambda p: {
+        'path': str(p.resolve()),
+        'size_mb': p.size.mb,
+        'modified_days_ago': p.mtime.age.days,
+        'created': p.ctime.datetime.strftime('%Y-%m-%d')
+    })
+)
+# Returns: [{'path': '/docs/report.pdf', 'size_mb': 2.1, ...}, ...]
+
+# Alternative: Create dictionary with filenames as keys
+files = (PQuery()
+    .from_("./documents")
+    .where(lambda p: p.suffix in ['.pdf', '.docx'])
+    .files()
+)
+
+file_metadata_dict = {
+    f.name: {
+        'path': str(f.resolve()),
+        'size_mb': f.size.mb,
+        'modified_days_ago': f.mtime.age.days,
+        'created': f.ctime.datetime.strftime('%Y-%m-%d')
+    }
+    for f in files
+}
+# Returns: {'report.pdf': {'path': '/docs/report.pdf', 'size_mb': 2.1, ...}, ...}
+```
+
+
+
+### Additional PQuery Utilities
+
+PQuery provides several utility methods for common operations:
+
+```python
+from tpath import PQuery
+
+# Check if any files match (without loading all results)
+has_large_files = (PQuery()
+    .from_("./data")
+    .where(lambda p: p.size.gb > 1)
+    .exists()
+)
+
+# Count matching files (without loading all results) 
+num_python_files = (PQuery()
+    .from_("./src") 
+    .where(lambda p: p.suffix == '.py')
+    .count()
+)
+
+# Get just the first match
+latest_log = (PQuery()
+    .from_("./logs")
+    .where(lambda p: p.suffix == '.log')
+    .first()  # Returns TPath or None
+)
+
+# Example: Find the largest file in a directory
+largest_file = (PQuery()
+    .from_("./downloads")
+    .where(lambda p: p.is_file())
+    .select(lambda p: (p.size.bytes, p))  # (size, path) tuples
+)
+if largest_file:
+    max_size, max_file = max(largest_file, key=lambda x: x[0])
+    print(f"Largest file: {max_file.name} ({max_file.size.mb:.1f} MB)")
+```
+
+### Efficient Top-K and Sorting with take() and sort()
+
+PQuery provides optimized methods for getting the "best" files and sorting results:
+
+```python
+from tpath import PQuery
+
+# Get top 10 largest files (most efficient for top-k)
+largest_files = (PQuery()
+    .from_("./data")
+    .take(10, key=lambda p: p.size.bytes)  # Uses heapq for O(n log k) performance
+)
+
+# Get 5 oldest files
+oldest_files = (PQuery()
+    .from_("./logs")
+    .take(5, key=lambda p: p.mtime.timestamp, reverse=False)
+)
+
+# Multi-column sorting: largest files, then alphabetical by name
+best_files = (PQuery()
+    .from_("./documents")
+    .take(10, key=lambda p: (p.size.bytes, p.name))
+)
+
+# Sort ALL files when you need complete ordering
+all_by_size = (PQuery()
+    .from_("./data")
+    .sort(key=lambda p: p.size.bytes, reverse=True)  # Full sort O(n log n)
+)
+
+# Sort by multiple criteria: directory first, then name
+organized = (PQuery()
+    .from_("./project")
+    .sort(key=lambda p: (p.parent.name, p.name))
+)
+
+# Performance comparison:
+# take() - O(n log k) - Use when you only need top/bottom k items
+# sort() - O(n log n) - Use when you need all items sorted
+
+# Examples:
+cleanup_candidates = (PQuery()
+    .from_("/var/log")
+    .where(lambda p: p.age.days > 30)
+    .take(50, key=lambda p: p.size.bytes)  # 50 largest old files
+)
+
+project_files = (PQuery()
+    .from_("./src")
+    .where(lambda p: p.suffix == '.py')
+    .sort(key=lambda p: p.size.bytes)  # All Python files by size
+)
+```
+
 ### Lazy Evaluation and Performance
 
 PQuery uses lazy evaluation - filters are only applied when you call `.files()`:
@@ -217,6 +381,148 @@ large_files = q.files()
 # Reuse the same query multiple times
 more_files = q.where(lambda p: p.suffix == '.mp4').files()
 ```
+
+## Shell-Style Pattern Matching with matches()
+
+**TPath provides a standalone `matches()` function for shell-style pattern matching.** This function works with any path type and integrates seamlessly with PQuery for powerful file filtering.
+
+### Basic Pattern Matching
+
+```python
+from tpath import matches, TPath
+from pathlib import Path
+
+# Basic usage - works with strings, Path, or TPath objects
+matches("app.log", "*.log")              # True
+matches("readme.txt", "*.log")           # False
+matches(Path("data.csv"), "*.csv")       # True  
+matches(TPath("script.py"), "*.py")      # True
+
+# Multiple patterns (OR logic) - returns True if ANY pattern matches
+matches("report.pdf", "*.pdf", "*.docx", "*.txt")     # True
+matches("config.ini", "*.json", "*.yaml", "*.toml")   # False
+
+# Wildcards and character classes
+matches("backup_2024.zip", "backup_202[3-4]*")       # True
+matches("data_file_v1.txt", "data_*_v?.txt")          # True
+matches("config.local.ini", "*config*")               # True
+```
+
+### Case Sensitivity Control
+
+```python
+# Case-sensitive matching (default)
+matches("IMAGE.JPG", "*.jpg")                         # False
+matches("IMAGE.JPG", "*.JPG")                         # True
+
+# Case-insensitive matching  
+matches("IMAGE.JPG", "*.jpg", case_sensitive=False)   # True
+matches("README.TXT", "*readme*", case_sensitive=False) # True
+```
+
+### Full Path vs Filename Matching
+
+```python
+# Default: match against filename only
+test_path = "/home/user/projects/app/src/main.py"
+matches(test_path, "*.py")                             # True
+matches(test_path, "*app*")                           # False (filename is "main.py")
+
+# Full path matching
+matches(test_path, "*app*", full_path=True)           # True
+matches(test_path, "*/src/*", full_path=True)         # True
+matches(test_path, "*projects*", full_path=True)      # True
+```
+
+### Integration with PQuery
+
+Use `matches()` with PQuery's `.where()` method for powerful file filtering:
+
+```python
+from tpath import PQuery, matches
+
+# Find log files using pattern matching
+log_files = (PQuery()
+    .from_("./logs")
+    .where(lambda p: matches(p, "*.log", "*.LOG", case_sensitive=False))
+    .files()
+)
+
+# Find configuration files across project
+config_files = (PQuery()
+    .from_("./")
+    .recursive(True)
+    .where(lambda p: matches(p, "*.conf", "*.ini", "*config*", "*.yaml", "*.json"))
+    .files()
+)
+
+# Complex filtering: large Python files with test patterns
+test_files = (PQuery()
+    .from_("./")
+    .recursive(True)
+    .where(lambda p: matches(p, "*test*", "*_test.py", "test_*.py") and p.size.kb > 10)
+    .files()
+)
+
+# Clean up temporary files by pattern
+temp_files = (PQuery()
+    .from_("./")
+    .recursive(True)
+    .where(lambda p: matches(p, "*.tmp", "*.temp", ".*", "~*", full_path=True) and 
+                     p.age.days > 7)
+    .files()
+)
+
+# Backup candidates - important file types from recent activity
+backup_files = (PQuery()
+    .from_("/home/user/documents")
+    .recursive(True)
+    .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*", "*.ppt*") and
+                     p.size.mb > 1 and
+                     p.mtime.cal.win_months(-3, 0))  # Modified in last 3 months
+    .files()
+)
+```
+
+### Pattern Examples
+
+```python
+# File extensions
+matches("document.pdf", "*.pdf")                      # Standard extension
+matches("script.py", "*.py", "*.js", "*.ts")          # Multiple extensions
+
+# Wildcards
+matches("backup_2024_12_25.zip", "backup_*")          # Prefix matching
+matches("temp_file_123.txt", "*_temp_*", "*temp*")    # Contains pattern
+matches("file.backup.old", "*.*.old")                 # Multiple dots
+
+# Character classes  
+matches("data2024.csv", "data[0-9][0-9][0-9][0-9]*") # Year pattern
+matches("fileA.txt", "file[A-Z].*")                   # Letter range
+matches("config_prod.ini", "*[!dev]*")                # Exclude pattern
+
+# Real-world patterns
+matches("error.log.2024-01", "*.log.*")               # Rotated logs
+matches("Thumbs.db", "[Tt]humbs.db")                  # Case variants
+matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
+```
+
+### Supported Pattern Syntax
+
+| Pattern | Description | Example | Matches |
+|---------|-------------|---------|---------|
+| `*` | Any sequence of characters | `*.log` | `app.log`, `error.log.old` |
+| `?` | Any single character | `file?.txt` | `file1.txt`, `fileA.txt` |
+| `[seq]` | Any character in sequence | `data[0-9].csv` | `data1.csv`, `data9.csv` |
+| `[!seq]` | Any character NOT in sequence | `*[!0-9].txt` | `fileA.txt`, `file_.txt` |
+| `[a-z]` | Character range | `[A-Z]*.py` | `Main.py`, `Test.py` |
+
+### Performance Notes
+
+- `matches()` is optimized for single file checking
+- For bulk operations, combine with PQuery's lazy evaluation
+- Pattern compilation is cached internally for repeated use
+- Use `full_path=False` (default) when possible for better performance
 
 ## Calendar Window Filtering
 
@@ -387,6 +693,7 @@ if path.age.seconds > expire_time:
 - **Property-based design**: Direct access to common file properties without calculations
 - **Full pathlib compatibility**: Drop-in replacement for pathlib.Path
 - **Natural syntax**: `path.age.days` instead of complex timestamp math
+- **Shell-style pattern matching**: Standalone `matches()` function with fnmatch wildcards
 - **Calendar window filtering**: Intuitive `win_*` methods for time range checking
 - **Comprehensive time units**: seconds, minutes, hours, days, weeks, months, quarters, years
 - **Multiple size units**: bytes, KB/KiB, MB/MiB, GB/GiB, TB/TiB, PB/PiB
