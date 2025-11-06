@@ -98,7 +98,8 @@ class TPath(Path):
         # Add thread-safe lock for stat caching
         object.__setattr__(self, "_stat_lock", threading.Lock())
 
-        return self    # Stat Caching Implementation
+        return self  # Stat Caching Implementation
+
     # ============================
     # This caching creates a consistent "snapshot" of file state for atomic decision-making.
     # Once stat() is called, all subsequent property accesses (size, age, timestamps) use

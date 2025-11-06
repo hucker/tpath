@@ -4,11 +4,17 @@ Path querying functionality for TPath objects.
 Provides a pathql-inspired API for querying files with lambda expressions.
 """
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from .._core import TPath
+
+# Type aliases for better readability and IDE support
+PathLike: TypeAlias = str | Path | TPath
+PathSequence: TypeAlias = Sequence[PathLike]
+# PathInput represents what from_() accepts: single paths or sequences of paths
+PathInput: TypeAlias = PathLike | PathSequence
 
 
 class PQuery:
@@ -20,7 +26,7 @@ class PQuery:
 
     def __init__(
         self,
-        from_: str | Path | TPath | None = None,
+        from_: PathLike | None = None,
         recursive: bool | None = None,
         where: Callable[[TPath], bool] | None = None,
     ):
@@ -50,12 +56,14 @@ class PQuery:
         self._query_func: Callable[[TPath], bool] | None = None
         self._use_distinct: bool = False  # Whether to deduplicate results
 
-    def from_(self, *paths: str | Path | list[str | Path]) -> "PQuery":
+    def from_(self, *paths: PathInput) -> "PQuery":
         """
         Set or add starting directory paths.
 
         Args:
-            *paths: One or more starting directory paths, or lists of paths
+            *paths: One or more starting directory paths, or sequences of paths.
+                   Each argument can be a single path (str, Path, TPath) or a
+                   sequence of paths (list, tuple, etc.)
 
         Returns:
             PQuery: Self for method chaining
@@ -68,18 +76,23 @@ class PQuery:
         """
         if not paths:
             raise ValueError("At least one path must be provided")
-        
-        # Flatten any lists in the arguments
-        flattened_paths = []
-        for path in paths:
-            if isinstance(path, list):
-                flattened_paths.extend(path)
+
+        # Flatten any sequences in the arguments with proper type handling
+        flattened_paths: list[PathLike] = []
+        for path_input in paths:
+            if isinstance(path_input, str | Path | TPath):
+                # Single path
+                flattened_paths.append(path_input)
+            elif hasattr(path_input, '__iter__') and not isinstance(path_input, str | bytes):
+                # Sequence of paths (list, tuple, etc.) - but not string/bytes
+                flattened_paths.extend(path_input)  # type: ignore[arg-type]
             else:
-                flattened_paths.append(path)
-        
+                # Fallback: treat as single path
+                flattened_paths.append(path_input)  # type: ignore[arg-type]
+
         if not flattened_paths:
             raise ValueError("At least one path must be provided")
-            
+
         # Apply defaults if start_paths is empty
         if not self.start_paths:
             default_path = self._init_from or "."
@@ -87,16 +100,22 @@ class PQuery:
 
         # If this is the first call and we still have the default '.', replace it
         if len(self.start_paths) == 1 and str(self.start_paths[0]) == ".":
-            self.start_paths = [path if isinstance(path, TPath) else TPath(path) for path in flattened_paths]
+            self.start_paths = [
+                path if isinstance(path, TPath) else TPath(path)
+                for path in flattened_paths
+            ]
         else:
             # Otherwise add to the list
-            self.start_paths.extend(path if isinstance(path, TPath) else TPath(path) for path in flattened_paths)
+            self.start_paths.extend(
+                path if isinstance(path, TPath) else TPath(path)
+                for path in flattened_paths
+            )
         return self
 
     def distinct(self) -> "PQuery":
         """
         Enable deduplication of results at the generator level.
-        
+
         This method enables efficient duplicate removal by tracking seen files in a set
         during iteration. Only the first occurrence of each unique file path is yielded.
         Particularly useful when searching multiple overlapping directories or when
@@ -108,21 +127,21 @@ class PQuery:
         Examples:
             # Remove duplicates when searching multiple directories that might overlap
             unique_logs = PQuery().from_("./logs", "./backup/logs").distinct().files()
-            
+
             # Get first 10 unique Python files (stops early when 10 found)
             first_unique = (PQuery()
                            .from_("./src", "./lib", "./vendor")
                            .where(lambda p: p.suffix == ".py")
                            .distinct()
                            .take(10))
-            
+
             # Handle symbolic links that might create duplicates
             real_configs = (PQuery()
                            .from_("./config", "./etc/config")
                            .where(lambda p: p.suffix == ".yaml")
                            .distinct()
                            .files())
-            
+
         Performance Notes:
             - Uses O(k) memory where k = number of unique files processed
             - Enables early termination: distinct().take(n) can stop after finding n unique items
@@ -251,7 +270,7 @@ class PQuery:
             # Stream processing (memory efficient)
             for file in pquery(from_="/logs").where(lambda p: p.age.hours < 24).files():
                 process_file(file)
-            
+
             # Materialize when needed
             all_files = list(pquery(from_=paths).distinct().files())
         """
@@ -273,7 +292,7 @@ class PQuery:
             # Stream processing (memory efficient)
             for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
                 process_size(size)
-            
+
             # Materialize when needed
             file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
         """
@@ -354,11 +373,11 @@ class PQuery:
             # Just any 10 files (no ordering)
             any_files = query.take(10)
         """
-        import heapq
+        import heapq  # noqa: F401 # Lazy import for performance optimization
 
         if key is None:
             # Simple case: just take first n files
-            result = []
+            result:list[TPath] = []
             for i, path in enumerate(self._iter_files()):
                 if i >= n:
                     break
@@ -407,13 +426,51 @@ class PQuery:
             return sorted(files, reverse=reverse)
         return sorted(files, key=key, reverse=reverse)
 
+    def paginate(self, page_size: int = 10) -> Iterator[list[TPath]]:
+        """
+        Return an iterator that yields pages of files.
+
+        This is the most efficient way to process large result sets in chunks,
+        as it maintains a single iterator and processes each file exactly once.
+
+        Args:
+            page_size: Number of files per page (default: 10)
+
+        Yields:
+            list[TPath]: Pages of files, each containing up to page_size items
+
+        Examples:
+            # Process files in batches for memory efficiency
+            for page in query.paginate(100):
+                process_batch(page)
+                print(f"Processed {len(page)} files")
+
+            # Web API pagination
+            pages = list(query.paginate(20))
+            page_1 = pages[0] if pages else []
+
+            # Manual pagination with progress
+            for page_num, page in enumerate(query.paginate(50)):
+                print(f"Page {page_num + 1}: {len(page)} files")
+                if not page:  # Empty page means we're done
+                    break
+        """
+        import itertools  # noqa: F401 # Lazy import - only needed for pagination
+
+        iterator = self._iter_files()
+        while True:
+            page = list(itertools.islice(iterator, page_size))
+            if not page:
+                break
+            yield page
+
     def __iter__(self) -> Iterator[TPath]:
         """Allow iteration over the query results."""
         return self._iter_files()
 
 
 def pquery(
-    from_: str | Path | TPath | list[str | Path | TPath] | None = None,
+    from_: PathInput | None = None,
     recursive: bool = True,
 ) -> PQuery:
     """
@@ -447,21 +504,15 @@ def pquery(
     query = PQuery().recursive(recursive)
 
     if from_ is not None:
-        if isinstance(from_, list):
-            # Clear the default '.' path and add all provided paths
-            query.start_paths = []
-            for path in from_:
-                query.start_paths.append(TPath(path))
-        else:
-            # Replace the default '.' path with the provided path
-            query.start_paths = [TPath(from_)]
+        # Use the from_() method which handles all the type complexity
+        query.from_(from_)
 
     return query
 
 
 # Legacy compatibility functions (deprecated - use pquery instead)
 def pfilter(
-    from_: str | Path | TPath | list[str | Path | TPath],
+    from_: PathInput,
     query: Callable[[TPath], bool],
     recursive: bool = True,
 ) -> Iterator[TPath]:
@@ -474,7 +525,7 @@ def pfilter(
 
 
 def pfind(
-    from_: str | Path | TPath | list[str | Path | TPath],
+    from_: PathInput,
     query: Callable[[TPath], bool],
     recursive: bool = True,
 ) -> list[TPath]:
@@ -483,7 +534,7 @@ def pfind(
 
 
 def pfirst(
-    from_: str | Path | TPath | list[str | Path | TPath],
+    from_: PathInput,
     query: Callable[[TPath], bool],
     recursive: bool = True,
 ) -> TPath | None:
@@ -492,7 +543,7 @@ def pfirst(
 
 
 def pexists(
-    from_: str | Path | TPath | list[str | Path | TPath],
+    from_: PathInput,
     query: Callable[[TPath], bool],
     recursive: bool = True,
 ) -> bool:
@@ -501,7 +552,7 @@ def pexists(
 
 
 def pcount(
-    from_: str | Path | TPath | list[str | Path | TPath],
+    from_: PathInput,
     query: Callable[[TPath], bool],
     recursive: bool = True,
 ) -> int:
@@ -509,4 +560,4 @@ def pcount(
     return pquery(from_, recursive).where(query).count()
 
 
-__all__ = ["pquery", "PQuery", "pfilter", "pfind", "pfirst", "pexists", "pcount"]
+__all__ = ["pquery", "PQuery", "PathLike", "PathSequence", "PathInput", "pfilter", "pfind", "pfirst", "pexists", "pcount"]

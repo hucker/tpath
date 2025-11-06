@@ -66,14 +66,14 @@ class PathTime:
 
         if self.time_type == "ctime":
             # Try st_birthtime first (newer), fall back to st_mtime for compatibility
-            birthtime = getattr(stat, 'st_birthtime', None)
+            birthtime = getattr(stat, "st_birthtime", None)
             return birthtime if birthtime is not None else stat.st_mtime
         elif self.time_type == "mtime":
             return stat.st_mtime
         elif self.time_type == "atime":
             return stat.st_atime
         else:
-            birthtime = getattr(stat, 'st_birthtime', None)
+            birthtime = getattr(stat, "st_birthtime", None)
             return birthtime if birthtime is not None else stat.st_mtime
 
     @property
@@ -83,7 +83,9 @@ class PathTime:
             # Lazy load the target datetime
             timestamp = self.timestamp
             if timestamp == 0:  # Handle nonexistent files
-                self._target_dt = self._ref_dt  # Return reference time for nonexistent files
+                self._target_dt = (
+                    self._ref_dt
+                )  # Return reference time for nonexistent files
             else:
                 self._target_dt = dt.datetime.fromtimestamp(timestamp)
         return self._target_dt

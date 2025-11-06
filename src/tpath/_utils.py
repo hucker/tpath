@@ -3,15 +3,15 @@ Utility functions for TPath, including pattern matching.
 """
 
 import fnmatch
-from pathlib import Path
 
 from ._core import TPath
+from .pquery._pquery import PathLike
 
 __all__ = ["matches"]
 
 
 def matches(
-    path: str | Path | TPath,
+    path: PathLike,
     *patterns: str,
     case_sensitive: bool = True,
     full_path: bool = False,
@@ -81,7 +81,8 @@ def matches(
             if fnmatch.fnmatch(target, pattern):
                 # On case-insensitive systems, fnmatch might match regardless of case
                 # So we need an additional exact check for the matching parts
-                import re
+                import re  # noqa: F401 # Lazy import - only needed for case-sensitive regex validation
+
                 # Convert fnmatch pattern to regex for exact case checking
                 regex_pattern = fnmatch.translate(pattern)
                 if re.match(regex_pattern, target):

@@ -6,46 +6,106 @@ TPath is a pathlib extension that provides first-class age, size, and calendar w
 
 **The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
 
-Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured with you input from users, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
+Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages and windows, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
 
 ### The Problem with Raw Timestamps
 
-Traditional file libraries give you timestamps and leave you to figure out the rest:
+Traditional file libraries give you timestamps and force you into complex, error-prone calculations:
 
 ```python
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 
-path = Path("logfile.txt")
-stat = path.stat()
-mtime = stat.st_mtime
+# Simple example: Find files older than 7 days
+old_files = []
+for path in Path("/var/log").rglob("*"):
+    if path.is_file():
+        stat = path.stat()
+        # Manual age calculation - easy to get wrong
+        age_seconds = datetime.now().timestamp() - stat.st_mtime
+        age_days = age_seconds / 86400  # Remember: 60*60*24 = 86400
+        size_mb = stat.st_size / 1048576  # Remember: 1024*1024 = 1048576
+        
+        if age_days > 7 and size_mb > 10:
+            old_files.append(path)
 
-# Complex calculations required for common operations
-age_seconds = datetime.now().timestamp() - mtime
-age_days = age_seconds / 86400  # Remember: 60*60*24 = 86400
-size_mb = stat.st_size / 1048576  # Remember: 1024*1024 = 1048576
-
-# Calendar window checking requires even more complex logic
-today = datetime.now().date()
-file_date = datetime.fromtimestamp(mtime).date()
-last_week = today - timedelta(days=7)
-is_from_last_week = last_week <= file_date <= today
-
-if age_days > 7 and size_mb > 100 and is_from_last_week:
-    print(f"Large file from last week: {age_days:.1f} days, {size_mb:.1f} MB")
+print(f"Found {len(old_files)} old files")
 ```
 
-### TPath Solution: Properties for Everything You Need
+But what about more complex queries? Traditional approaches fall apart quickly:
+
+```python
+import fnmatch
+from datetime import timedelta
+
+# Complex example: Backup candidates from multiple criteria
+backup_candidates = []
+for base_dir in ["/home/user/docs", "/home/user/projects"]:
+    for file_path in Path(base_dir).rglob("*"):
+        if not file_path.is_file():
+            continue
+            
+        # Complex pattern matching across multiple extensions
+        if not (fnmatch.fnmatch(file_path.name, "*.doc*") or 
+                fnmatch.fnmatch(file_path.name, "*.pdf") or
+                fnmatch.fnmatch(file_path.name, "*.xls*")):
+            continue
+        
+        stat = file_path.stat()
+        
+        # Manual size filtering
+        if stat.st_size < 1048576:  # Less than 1MB
+            continue
+            
+        # Complex date arithmetic for calendar-month boundaries
+        # Want files from Aug 1st through Oct 31st (if today is Oct 15th)  
+        mtime = datetime.fromtimestamp(stat.st_mtime)
+        now = datetime.now()
+        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        three_months_ago = (current_month_start.replace(month=current_month_start.month-3) 
+                           if current_month_start.month > 3 
+                           else current_month_start.replace(year=current_month_start.year-1, month=current_month_start.month+9))
+        if mtime < three_months_ago:
+            continue
+            
+        # More calculations for reporting
+        age_days = (datetime.now() - mtime).days
+        size_mb = stat.st_size / 1048576
+        backup_candidates.append((file_path, size_mb, age_days))
+
+print(f"Found {len(backup_candidates)} backup candidates")
+```
+
+### TPath Solution: What Becomes Easy
 
 ```python
 from tpath import TPath
 
-# Direct, readable properties - no calculations needed
-path = TPath("logfile.txt")
+# Simple case: One line instead of a dozen
+old_files = [f for f in Path("/var/log").rglob("*") 
+             if TPath(f).age.days > 7 and TPath(f).size.mb > 10]
+```
 
-if path.age.days > 7 and path.size.mb > 100 and path.mtime.cal.win_days(-7, 0):
-    print(f"Large file from last week: {path.age.days:.1f} days, {path.size.mb:.1f} MB")
+**Complex queries become trivial with PQuery's fluent interface:**
+
+```python
+from tpath import PQuery, matches
+
+# Multi-directory, multi-pattern, calendar-window query in 6 readable lines
+# win_months(-3, 0) = calendar month boundaries (Aug 1st - Oct 31st if today is Oct 15th)
+# Calendar windows ≠ duration math: 90 days ≠ 3 months, avg_days*months ≠ real months
+# TPath makes "this quarter", "this month", "last 3 months" queries natural and correct!
+backup_candidates = list(
+    PQuery()
+    .from_("/home/user/docs", "/home/user/projects")
+    .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*") and
+                     p.size.mb >= 1.0 and
+                     p.mtime.cal.win_months(-3, 0))
+    .select(lambda p: (p, p.size.mb, p.age.days))
+)
+
+print(f"Found {len(backup_candidates)} backup candidates")
 ```
 
 **No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.**
@@ -319,6 +379,36 @@ all_by_time = (PQuery()
 # Performance tip: use take() for top-N, sort() for complete ordering
 ```
 
+### Pagination for Large Datasets
+
+```python
+# Process files in batches to manage memory
+for page in PQuery().from_("./massive/dataset").paginate(100):
+    process_batch(page)
+    print(f"Processed {len(page)} files")
+
+# Web API pagination
+query = PQuery().from_("./documents").where(lambda p: p.suffix == '.pdf')
+pages = list(query.paginate(20))  # Get all pages
+first_page = pages[0] if pages else []
+
+# Manual page iteration
+paginator = query.paginate(50)
+page1 = next(paginator, [])  # First 50 files
+page2 = next(paginator, [])  # Next 50 files
+page3 = next(paginator, [])  # Next 50 files
+
+# Efficient batch processing with progress
+total_processed = 0
+for page_num, page in enumerate(query.paginate(200)):
+    total_processed += len(page)
+    print(f"Page {page_num + 1}: processed {total_processed} files")
+    
+    # Process each file in the page
+    for file in page:
+        backup_file(file)
+```
+
 ### Streaming vs. Materialization
 
 **PQuery uses streaming by default for memory efficiency:**
@@ -379,6 +469,10 @@ query.distinct().take(10)         # O(k≤n) - stops after 10 unique files
 for file in query.files():        # O(1) memory - processes one file at a time
     process_file(file)
 
+# ⚡ PAGINATION - Batch processing with controlled memory
+for page in query.paginate(100):  # O(100) memory - processes 100 files at a time
+    process_batch(page)
+
 # 📈 EFFICIENT - Heap-based top-N selection  
 query.take(10, key=lambda p: p.size.bytes)           # O(n + 10 log n) - top 10 largest
 query.take(10, key=lambda p: p.size.bytes, reverse=False)  # O(n + 10 log n) - top 10 smallest
@@ -391,6 +485,7 @@ query.sort()                      # O(n log n) - full sort required
 
 # 💡 Performance Tips:
 # - Use streaming: for file in query.files() for memory efficiency
+# - Use pagination: for page in query.paginate(100) for batch processing
 # - Use list() only when you need random access or length
 # - Use distinct().take(n) for unique results with early stopping
 # - Use take(n, key=...) instead of list(query.sort().take(n)) when possible  

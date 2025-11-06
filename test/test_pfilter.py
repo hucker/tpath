@@ -2,7 +2,7 @@
 Tests for pquery lambda-based filtering functionality.
 """
 
-from tpath.pquery._filter import pquery, pfilter, pfind, pfirst, pexists, pcount
+from tpath.pquery._pquery import pcount, pexists, pfilter, pfind, pfirst, pquery
 
 
 def test_pfilter_basic_functionality(tmp_path):
@@ -159,11 +159,15 @@ def test_pfilter_glob_vs_rglob(tmp_path):
     (sub2 / "deep.txt").write_text("deep")
 
     # Recursive should find all files (uses rglob)
-    recursive_files = list(pfilter(tmp_path, lambda p: p.suffix == ".txt", recursive=True))
+    recursive_files = list(
+        pfilter(tmp_path, lambda p: p.suffix == ".txt", recursive=True)
+    )
     assert len(recursive_files) == 3  # root.txt, sub1.txt, deep.txt
 
     # Non-recursive should only find top-level files (uses glob)
-    non_recursive_files = list(pfilter(tmp_path, lambda p: p.suffix == ".txt", recursive=False))
+    non_recursive_files = list(
+        pfilter(tmp_path, lambda p: p.suffix == ".txt", recursive=False)
+    )
     assert len(non_recursive_files) == 1  # only root.txt
     assert non_recursive_files[0].name == "root.txt"
 
@@ -181,10 +185,10 @@ def test_pquery_basic_functionality(tmp_path):
     (tmp_path / "test.py").write_text("print('hello')")
 
     # Test basic querying with files()
-    small_files = pquery(from_=tmp_path).where(lambda p: p.size.bytes < 100).files()
+    small_files = list(pquery(from_=tmp_path).where(lambda p: p.size.bytes < 100).files())
     assert len(small_files) == 2  # small.txt and test.py
 
-    py_files = pquery(from_=tmp_path).where(lambda p: p.suffix == ".py").files()
+    py_files = list(pquery(from_=tmp_path).where(lambda p: p.suffix == ".py").files())
     assert len(py_files) == 1
     assert py_files[0].name == "test.py"
 
@@ -197,19 +201,23 @@ def test_pquery_select_functionality(tmp_path):
     (tmp_path / "file3.log").write_text("content3")
 
     # Test selecting file names
-    names = pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.name)
+    names = list(pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.name))
     assert len(names) == 3
     assert "file1.txt" in names
     assert "file2.py" in names
     assert "file3.log" in names
 
     # Test selecting file sizes
-    sizes = pquery(from_=tmp_path).where(lambda p: p.suffix == ".txt").select(lambda p: p.size.bytes)
+    sizes = list(
+        pquery(from_=tmp_path)
+        .where(lambda p: p.suffix == ".txt")
+        .select(lambda p: p.size.bytes)
+    )
     assert len(sizes) == 1
     assert sizes[0] == 8  # "content1"
 
     # Test selecting suffixes
-    suffixes = pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.suffix)
+    suffixes = list(pquery(from_=tmp_path).where(lambda p: True).select(lambda p: p.suffix))
     assert set(suffixes) == {".txt", ".py", ".log"}
 
 
@@ -252,11 +260,11 @@ def test_pquery_multiple_paths(tmp_path):
     (dir2 / "file4.log").write_text("content4")
 
     # Test with list of paths
-    txt_files = pquery(from_=[dir1, dir2]).where(lambda p: p.suffix == ".txt").files()
+    txt_files = list(pquery(from_=[dir1, dir2]).where(lambda p: p.suffix == ".txt").files())
     assert len(txt_files) == 2
 
     # Test select with multiple paths
-    names = pquery(from_=[dir1, dir2]).where(lambda p: True).select(lambda p: p.name)
+    names = list(pquery(from_=[dir1, dir2]).where(lambda p: True).select(lambda p: p.name))
     assert len(names) == 4
 
     # Test count with multiple paths

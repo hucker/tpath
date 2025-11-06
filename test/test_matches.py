@@ -110,10 +110,7 @@ class TestMatchesFunction:
             from tpath import PQuery
 
             log_files = (
-                PQuery()
-                .from_(temp_path)
-                .where(lambda p: matches(p, "*.log"))
-                .files()
+                PQuery().from_(temp_path).where(lambda p: matches(p, "*.log")).files()
             )
 
             log_names = [f.name for f in log_files]
