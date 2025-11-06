@@ -7,11 +7,20 @@ Main TPath class that extends pathlib.Path with age and size functionality.
 import os
 import platform
 import stat
+import threading
 from datetime import datetime
-from functools import cached_property
 from pathlib import Path
 from typing import Any
 
+from ._constants import (
+    ACCESS_MODE_ALL,
+    ACCESS_MODE_EXECUTE,
+    ACCESS_MODE_READ,
+    ACCESS_MODE_READ_ONLY,
+    ACCESS_MODE_READ_WRITE,
+    ACCESS_MODE_WRITE,
+    ACCESS_MODE_WRITE_ONLY,
+)
 from ._size import Size
 from ._time import PathTime
 from .chronos import Age
@@ -76,51 +85,67 @@ class TPath(Path):
     """
 
     _base_time: datetime
+    _stat_lock: threading.Lock
+    _cached_stat_result: Any
 
     def __new__(cls, *args: Any, **kwargs: Any):
+        """Create a new TPath instance."""
         # Create the path instance - Path doesn't accept custom kwargs
         self = super().__new__(cls, *args, **kwargs)
 
         # Set our custom attributes with default value
         object.__setattr__(self, "_base_time", datetime.now())
+        # Add thread-safe lock for stat caching
+        object.__setattr__(self, "_stat_lock", threading.Lock())
 
-        return self
-
-    # Stat Caching Implementation
+        return self    # Stat Caching Implementation
     # ============================
     # This caching creates a consistent "snapshot" of file state for atomic decision-making.
     # Once stat() is called, all subsequent property accesses (size, age, timestamps) use
     # the same cached result, preventing race conditions and ensuring consistent analysis.
 
-    @cached_property
     def _stat_cache(self) -> Any:
-        """Cache the stat result to avoid repeated filesystem calls."""
-        try:
-            original_stat = super().stat()
-            # On platforms with st_birthtime, replace st_ctime with actual creation time
-            if hasattr(original_stat, "st_birthtime") and hasattr(
-                original_stat, "st_ctime"
-            ):
-                # Create new stat result with corrected st_ctime (using st_birthtime)
-                modified_stat = os.stat_result(
-                    (
-                        original_stat.st_mode,
-                        original_stat.st_ino,
-                        original_stat.st_dev,
-                        original_stat.st_nlink,
-                        original_stat.st_uid,
-                        original_stat.st_gid,
-                        original_stat.st_size,
-                        original_stat.st_atime,
-                        original_stat.st_mtime,
-                        original_stat.st_birthtime,  # Use birthtime for ctime
+        """Cache the stat result to avoid repeated filesystem calls (thread-safe)."""
+        # Check if we already have a cached result (fast path, no lock needed)
+        if hasattr(self, "_cached_stat_result"):
+            return self._cached_stat_result
+
+        # Use lock for thread-safe initialization
+        with self._stat_lock:
+            # Double-check pattern: another thread might have set it while we waited
+            if hasattr(self, "_cached_stat_result"):
+                return self._cached_stat_result
+
+            try:
+                original_stat = super().stat()
+                # On platforms with st_birthtime, replace st_ctime with actual creation time
+                if hasattr(original_stat, "st_birthtime") and hasattr(
+                    original_stat, "st_ctime"
+                ):
+                    # Create new stat result with corrected st_ctime (using st_birthtime)
+                    modified_stat = os.stat_result(
+                        (
+                            original_stat.st_mode,
+                            original_stat.st_ino,
+                            original_stat.st_dev,
+                            original_stat.st_nlink,
+                            original_stat.st_uid,
+                            original_stat.st_gid,
+                            original_stat.st_size,
+                            original_stat.st_atime,
+                            original_stat.st_mtime,
+                            original_stat.st_birthtime,  # Use birthtime for ctime
+                        )
                     )
-                )
-                return modified_stat
-            else:
-                return original_stat
-        except (OSError, FileNotFoundError):
-            return None
+                    result = modified_stat
+                else:
+                    result = original_stat
+            except (OSError, FileNotFoundError):
+                result = None
+
+            # Cache the result
+            object.__setattr__(self, "_cached_stat_result", result)
+            return result
 
     def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
         """Override stat() to use cached result when possible."""
@@ -129,7 +154,7 @@ class TPath(Path):
             return super().stat(follow_symlinks=False)
 
         # Use cached result for normal stat() calls
-        cached_result = self._stat_cache
+        cached_result = self._stat_cache()
         if cached_result is None:
             # File doesn't exist, call parent to get proper exception
             return super().stat(follow_symlinks=follow_symlinks)
@@ -222,13 +247,14 @@ class TPath(Path):
 
         Args:
             spec: Access mode specification. Supported formats:
-                - "R" or "r" - readable
-                - "W" or "w" - writable
-                - "X" or "x" - executable
-                - "RO" or "ro" - read-only (readable but not writable)
-                - "WO" or "wo" - write-only (writable but not readable)
-                - "RW" or "rw" - read-write (both readable and writable)
-                - "RWX" or "rwx" - all permissions
+                - ACCESS_MODE_READ ("R") - readable
+                - ACCESS_MODE_WRITE ("W") - writable
+                - ACCESS_MODE_EXECUTE ("X") - executable
+                - ACCESS_MODE_READ_ONLY ("RO") - read-only (readable but not writable)
+                - ACCESS_MODE_WRITE_ONLY ("WO") - write-only (writable but not readable)
+                - ACCESS_MODE_READ_WRITE ("RW") - read-write (both readable and writable)
+                - ACCESS_MODE_ALL ("RWX") - all permissions
+                Case-insensitive. Also accepts long form aliases like "READ", "WRITE", etc.
 
         Returns:
             bool: True if file matches the specified mode
@@ -240,22 +266,30 @@ class TPath(Path):
         """
         spec = spec.upper().strip()
 
-        if spec in ("R", "READ"):
+        if spec in (ACCESS_MODE_READ, "READ"):
             return self.readable
-        elif spec in ("W", "WRITE"):
+        elif spec in (ACCESS_MODE_WRITE, "WRITE"):
             return self.writable
-        elif spec in ("X", "EXEC", "EXECUTABLE"):
+        elif spec in (ACCESS_MODE_EXECUTE, "EXEC", "EXECUTABLE"):
             return self.executable
-        elif spec in ("RO", "READONLY", "READ_ONLY"):
+        elif spec in (ACCESS_MODE_READ_ONLY, "READONLY", "READ_ONLY"):
             return self.read_only
-        elif spec in ("WO", "WRITEONLY", "WRITE_ONLY"):
+        elif spec in (ACCESS_MODE_WRITE_ONLY, "WRITEONLY", "WRITE_ONLY"):
             return self.write_only
-        elif spec in ("RW", "READWRITE", "READ_WRITE"):
+        elif spec in (ACCESS_MODE_READ_WRITE, "READWRITE", "READ_WRITE"):
             return self.read_write
-        elif spec in ("RWX", "ALL"):
+        elif spec in (ACCESS_MODE_ALL, "ALL"):
             return self.readable and self.writable and self.executable
         else:
-            valid_specs = ["R", "W", "X", "RO", "WO", "RW", "RWX"]
+            valid_specs = [
+                ACCESS_MODE_READ,
+                ACCESS_MODE_WRITE,
+                ACCESS_MODE_EXECUTE,
+                ACCESS_MODE_READ_ONLY,
+                ACCESS_MODE_WRITE_ONLY,
+                ACCESS_MODE_READ_WRITE,
+                ACCESS_MODE_ALL,
+            ]
             raise ValueError(
                 f"Invalid mode specification: '{spec}'. Valid options: {valid_specs}"
             )

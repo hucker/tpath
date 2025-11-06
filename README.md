@@ -111,6 +111,113 @@ print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
 print(f"Created this month: {path.ctime.cal.win_months(0)}")
 ```
 
+## PQuery - Powerful File Querying
+
+**PQuery provides a fluent, chainable API for filtering files based on age, size, and other properties.** It's designed for complex file filtering operations with readable, expressive syntax.
+
+### Simple PQuery Examples
+
+```python
+from tpath import PQuery
+
+# Simple queries with default starting directory (current directory)
+q = PQuery()  # Starts from current directory by default
+
+# Find all Python files
+python_files = q.where(lambda p: p.suffix == '.py').files()
+
+# Find files larger than 10MB
+large_files = q.where(lambda p: p.size.mb > 10).files()
+
+# Find files modified in the last 7 days
+recent_files = q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files()
+
+# Find old, large log files
+old_large_logs = (q
+    .where(lambda p: p.suffix == '.log' and p.size.mb > 50 and p.age.days > 30)
+    .files())
+```
+
+### Complex PQuery Examples
+
+```python
+from tpath import PQuery
+from pathlib import Path
+
+# Complex multi-criteria file cleanup query
+cleanup_query = (PQuery()
+    .from_("/var/log")
+    .recursive(True)
+    .where(lambda p: p.suffix in ['.log', '.tmp', '.cache'] and 
+                     p.age.days > 30 and 
+                     p.size.mb > 1 and 
+                     not p.mtime.cal.win_days(-7, 0))
+)
+
+# Execute and process results
+old_files = cleanup_query.files()
+total_size = sum(f.size.bytes for f in old_files)
+print(f"Found {len(old_files)} files totaling {total_size // 1024**2} MB")
+
+# Project analysis query - find large source files that haven't been touched recently
+project_analysis = (PQuery()
+    .from_("./src")
+    .recursive(True)
+    .where(lambda p: p.suffix in ['.py', '.js', '.ts', '.cpp', '.h'] and
+                     p.size.kb > 50 and  # Larger source files
+                     p.mtime.age.days > 90 and  # Not modified in 90 days
+                     p.name != '__init__.py')  # Exclude init files
+)
+
+stale_code = project_analysis.files()
+for file in sorted(stale_code, key=lambda f: f.size.bytes, reverse=True):
+    print(f"{file.name}: {file.size.kb:.1f} KB, {file.age.days} days old")
+
+# Backup candidate identification
+backup_candidates = (PQuery()
+    .from_("/home/user/documents")
+    .recursive(True)
+    .where(lambda p: p.suffix in ['.doc', '.docx', '.pdf', '.xlsx'] and
+                     p.size.mb > 5 and  # Important files are usually larger
+                     p.ctime.cal.win_years(-1, 0) and  # Created within last year
+                     p.mtime.cal.win_months(-1, 0))  # Modified within last month
+)
+
+important_files = backup_candidates.files()
+print(f"Found {len(important_files)} important files for backup")
+```
+
+### PQuery Method Chaining
+
+PQuery supports fluent method chaining for building complex queries:
+
+```python
+# Method chaining allows building complex queries step by step
+query = (PQuery()
+    .from_("/data")           # Set starting directory
+    .recursive(True)             # Include subdirectories
+    .where(lambda p: p.is_file() and p.size.gb > 1 and p.age.months > 6)  # Combined filters
+)
+
+# Execute when ready
+results = query.files()
+```
+
+### Lazy Evaluation and Performance
+
+PQuery uses lazy evaluation - filters are only applied when you call `.files()`:
+
+```python
+# Build the query (no filesystem operations yet)
+q = PQuery().from_("/large/directory").where(lambda p: p.size.gb > 5)
+
+# Only now does it scan the filesystem
+large_files = q.files()  
+
+# Reuse the same query multiple times
+more_files = q.where(lambda p: p.suffix == '.mp4').files()
+```
+
 ## Calendar Window Filtering
 
 **TPath provides intuitive calendar window filtering to check if files fall within specific time ranges.** This is perfect for finding files from "last week", "this month", "last quarter", etc.

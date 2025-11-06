@@ -24,6 +24,7 @@ from ._core import TPath
 from ._size import Size
 from ._time import PathTime, TimeType
 from .chronos import Age, Cal
+from .pquery import pquery, PQuery
 
 # Base __all__ with core exports
 __all__ = [
@@ -33,6 +34,8 @@ __all__ = [
     "Size",
     "PathTime",
     "TimeType",
+    "pquery",
+    "PQuery",
 ]
 
 
