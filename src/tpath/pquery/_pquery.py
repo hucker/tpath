@@ -48,20 +48,38 @@ class PQuery:
         self.start_paths: list[TPath] = []
         self.is_recursive: bool = True  # Default, may be overridden
         self._query_func: Callable[[TPath], bool] | None = None
+        self._use_distinct: bool = False  # Whether to deduplicate results
 
-    def from_(self, path: str | Path | TPath) -> "PQuery":
+    def from_(self, *paths: str | Path | list[str | Path]) -> "PQuery":
         """
-        Set or add a starting directory path.
+        Set or add starting directory paths.
 
         Args:
-            path: Starting directory path
+            *paths: One or more starting directory paths, or lists of paths
 
         Returns:
             PQuery: Self for method chaining
 
-        Example:
+        Examples:
             PQuery().from_("/logs").where(lambda p: p.size.gb < 1)
+            PQuery().from_("/logs", "/var/log", "/opt/app/logs").where(lambda p: p.suffix == ".log")
+            PQuery().from_(path_list).where(lambda p: p.suffix == ".txt")  # list of paths
+            PQuery().from_("/logs", path_list, "/var/log").files()  # mixed individual and list
         """
+        if not paths:
+            raise ValueError("At least one path must be provided")
+        
+        # Flatten any lists in the arguments
+        flattened_paths = []
+        for path in paths:
+            if isinstance(path, list):
+                flattened_paths.extend(path)
+            else:
+                flattened_paths.append(path)
+        
+        if not flattened_paths:
+            raise ValueError("At least one path must be provided")
+            
         # Apply defaults if start_paths is empty
         if not self.start_paths:
             default_path = self._init_from or "."
@@ -69,31 +87,49 @@ class PQuery:
 
         # If this is the first call and we still have the default '.', replace it
         if len(self.start_paths) == 1 and str(self.start_paths[0]) == ".":
-            self.start_paths = [TPath(path)]
+            self.start_paths = [path if isinstance(path, TPath) else TPath(path) for path in flattened_paths]
         else:
             # Otherwise add to the list
-            self.start_paths.append(TPath(path))
+            self.start_paths.extend(path if isinstance(path, TPath) else TPath(path) for path in flattened_paths)
         return self
 
-    def from_path(self, path: str | Path | TPath) -> "PQuery":
+    def distinct(self) -> "PQuery":
         """
-        Add another starting directory path.
-
-        Args:
-            path: Additional starting directory path
+        Enable deduplication of results at the generator level.
+        
+        This method enables efficient duplicate removal by tracking seen files in a set
+        during iteration. Only the first occurrence of each unique file path is yielded.
+        Particularly useful when searching multiple overlapping directories or when
+        symbolic links might create duplicate references.
 
         Returns:
             PQuery: Self for method chaining
 
-        Example:
-            PQuery().from_("/logs").from_path("/var/log").where(lambda p: p.suffix == ".log")
+        Examples:
+            # Remove duplicates when searching multiple directories that might overlap
+            unique_logs = PQuery().from_("./logs", "./backup/logs").distinct().files()
+            
+            # Get first 10 unique Python files (stops early when 10 found)
+            first_unique = (PQuery()
+                           .from_("./src", "./lib", "./vendor")
+                           .where(lambda p: p.suffix == ".py")
+                           .distinct()
+                           .take(10))
+            
+            # Handle symbolic links that might create duplicates
+            real_configs = (PQuery()
+                           .from_("./config", "./etc/config")
+                           .where(lambda p: p.suffix == ".yaml")
+                           .distinct()
+                           .files())
+            
+        Performance Notes:
+            - Uses O(k) memory where k = number of unique files processed
+            - Enables early termination: distinct().take(n) can stop after finding n unique items
+            - More efficient than post-processing with set(results) for large datasets
+            - Order of first occurrence is preserved
         """
-        # Apply defaults if start_paths is empty
-        if not self.start_paths:
-            default_path = self._init_from or "."
-            self.start_paths = [TPath(default_path)]
-
-        self.start_paths.append(TPath(path))
+        self._use_distinct = True
         return self
 
     def recursive(self, recursive: bool = True) -> "PQuery":
@@ -166,6 +202,9 @@ class PQuery:
         if self._query_func is None:
             self._query_func = self._init_where or (lambda p: p.is_file())
 
+        # Set for tracking seen files if distinct is enabled
+        seen_files: set[TPath] = set() if self._use_distinct else set()
+
         for start_path in self.start_paths:
             if not start_path.exists():
                 continue
@@ -174,7 +213,10 @@ class PQuery:
                 # If it's a file, just test that single file
                 try:
                     if self._query_func(start_path):
-                        yield start_path
+                        if not self._use_distinct or start_path not in seen_files:
+                            if self._use_distinct:
+                                seen_files.add(start_path)
+                            yield start_path
                 except (OSError, PermissionError):
                     continue
                 continue
@@ -187,7 +229,10 @@ class PQuery:
                         tpath = TPath(path)
                         try:
                             if self._query_func(tpath):
-                                yield tpath
+                                if not self._use_distinct or tpath not in seen_files:
+                                    if self._use_distinct:
+                                        seen_files.add(tpath)
+                                    yield tpath
                         except (OSError, PermissionError):
                             # Skip files we can't access
                             continue
@@ -202,10 +247,13 @@ class PQuery:
         Returns:
             list[TPath]: List of matching file paths
 
-        Example:
+        Examples:
             recent_logs = pquery(from_="/logs").where(lambda p: p.age.hours < 24).files()
+            unique_files = pquery(from_=paths).distinct().files()  # Deduplicated at generator level
         """
         return list(self._iter_files())
+
+    # Remove the old distinct() method - it will be on PQueryResult instead
 
     def select(self, selector: Callable[[TPath], Any]) -> list[Any]:
         """
@@ -309,15 +357,11 @@ class PQuery:
                 result.append(path)
             return result
 
-        # Efficient top-k using heap
-        files = list(self._iter_files())
-        if not files:
-            return []
-
+        # Efficient top-k using heap - work directly with iterator
         if reverse:
-            return heapq.nlargest(n, files, key=key)
+            return heapq.nlargest(n, self._iter_files(), key=key)
         else:
-            return heapq.nsmallest(n, files, key=key)
+            return heapq.nsmallest(n, self._iter_files(), key=key)
 
     def sort(
         self, key: Callable[[TPath], Any] | None = None, reverse: bool = False
@@ -390,7 +434,7 @@ def pquery(
         all_configs = pquery(from_=["/etc", "/opt/config"]).where(lambda p: p.suffix == ".conf").files()
 
         # Using the fluent API
-        query = PQuery().from_("/logs").from_path("/var/log").recursive(True).where(lambda p: p.size.gb > 1)
+        query = PQuery().from_("/logs").from_("/var/log").recursive(True).where(lambda p: p.size.gb > 1)
     """
     query = PQuery().recursive(recursive)
 

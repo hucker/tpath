@@ -6,7 +6,7 @@ TPath is a pathlib extension that provides first-class age, size, and calendar w
 
 **The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
 
-Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**.
+Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured with you input from users, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
 
 ### The Problem with Raw Timestamps
 
@@ -51,6 +51,8 @@ if path.age.days > 7 and path.size.mb > 100 and path.mtime.cal.win_days(-7, 0):
 **No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.**
 
 ## Installation
+
+**NOT ALIVE ON PYPI YET**
 
 ### Using uv (Recommended)
 
@@ -124,15 +126,28 @@ print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
 Standalone `matches()` function for shell-style pattern matching:
 
 ```python
-from tpath import matches
+from tpath import matches, PQuery
 
-# Basic pattern matching
-print(f"Is Python file: {matches('script.py', '*.py')}")
-print(f"Is log file: {matches('app.log', '*.log', '*.LOG', case_sensitive=False)}")
+# Use with PQuery for file filtering
+python_files = (PQuery()
+    .from_("./src")
+    .where(lambda p: matches(p, "*.py"))
+    .files()
+)
 
-# Multiple patterns and wildcards
-matches("backup_2024.zip", "backup_202[3-4]*")       # True
-matches("report.pdf", "*.pdf", "*.docx", "*.txt")    # True
+# Multiple patterns with case-insensitive matching
+log_files = (PQuery()
+    .from_("./logs")
+    .where(lambda p: matches(p, "*.log", "*.LOG", case_sensitive=False))
+    .files()
+)
+
+# Complex pattern matching with wildcards
+backup_files = (PQuery()
+    .from_("./backups")
+    .where(lambda p: matches(p, "backup_202[3-4]*", "*important*"))
+    .files()
+)
 ```
 
 ## PQuery - Powerful File Querying
@@ -153,7 +168,7 @@ python_files = q.where(lambda p: p.suffix == '.py').files()
 # Find files by size
 large_files = q.where(lambda p: p.size.mb > 10).files()
 
-# Find files by age
+# Find files by calendar window
 recent_files = q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files()
 
 # Complex combined criteria
@@ -162,7 +177,10 @@ old_large_logs = (q
     .files())
 ```
 
-### Method Chaining
+### Method Chaining/Fluent Interface
+
+Properties can be set in the boject initialzation by filling in the appropriate keyword args.  A fluent interface
+is also available that can be more readable.
 
 ```python
 # Build complex queries step by step
@@ -171,6 +189,20 @@ cleanup_files = (PQuery()
     .recursive(True)                # Include subdirectories
     .where(lambda p: p.suffix in ['.log', '.tmp'] and p.age.days > 30)
     .files()
+)
+
+# Search multiple directories at once
+all_logs = (PQuery()
+    .from_("/var/log", "/opt/app/logs", "/home/user/logs")  # Multiple paths
+    .where(lambda p: p.suffix == '.log')
+    .files()
+)
+
+# Remove duplicate files from results (useful with overlapping search paths)
+unique_logs = (PQuery()
+    .from_(log_dirs, backup_dirs, "/var/log")  # Multiple sources may overlap
+    .where(lambda p: p.suffix == '.log')
+    .distinct()                                # Remove duplicate files from results
 )
 
 # Execute and process results
@@ -247,7 +279,7 @@ all_by_time = (PQuery()
 # Performance tip: use take() for top-N, sort() for complete ordering
 ```
 
-### Performance Notes
+### Performance and Efficiency
 
 PQuery uses lazy evaluation - filters are only applied when you call execution methods:
 
@@ -262,7 +294,33 @@ large_files = q.files()  # Execute the query
 more_files = q.where(lambda p: p.suffix == '.mp4').files()
 ```
 
-## Pattern Matching with matches()
+#### Efficiency Guide for Large Datasets
+
+Different operations have vastly different performance characteristics:
+
+```python
+# ⚡ MOST EFFICIENT - Early termination operations
+query.take(10)                    # O(10) - stops after 10 files
+query.first()                     # O(1) - stops after first match  
+query.exists()                    # O(1) - stops after first match
+query.distinct().take(10)         # O(k≤n) - stops after 10 unique files
+
+# 📈 EFFICIENT - Heap-based top-N selection  
+query.take(10, key=lambda p: p.size.bytes)  # O(n + 10 log n) - heap algorithm
+
+# 🐌 EXPENSIVE - Must process all files
+query.files()                     # O(n) - returns all results
+query.count()                     # O(n) - must count all matches
+query.sort()                      # O(n log n) - full sort required
+
+# 💡 Performance Tips:
+# - Use distinct().take(n) for unique results with early stopping
+# - Use take(n, key=...) instead of sort().take(n) when possible  
+# - Chain filters early: .where().distinct().take() is optimal order
+# - Use exists() instead of len(files()) > 0 to check for matches
+```
+
+## Pattern Matching with `matches()`
 
 **TPath provides a standalone `matches()` function for shell-style pattern matching.** This function works with any path type and integrates seamlessly with PQuery for powerful file filtering.
 
@@ -391,7 +449,7 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 
 | Pattern | Description | Example | Matches |
 |---------|-------------|---------|---------|
-| `*` | Any sequence of characters | `*.log` | `app.log`, `error.log.old` |
+| `*` | Zero or more characters | `*.log` | `app.log`, `error.log.old`, `.log` |
 | `?` | Any single character | `file?.txt` | `file1.txt`, `fileA.txt` |
 | `[seq]` | Any character in sequence | `data[0-9].csv` | `data1.csv`, `data9.csv` |
 | `[!seq]` | Any character NOT in sequence | `*[!0-9].txt` | `fileA.txt`, `file_.txt` |

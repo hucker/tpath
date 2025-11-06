@@ -83,8 +83,8 @@ def demo_default_constructor():
     return temp_dir
 
 def demo_fluent_from_methods():
-    """Demonstrate fluent from_() and from_path() methods."""
-    print("\n=== Fluent from_() and from_path() Methods ===")
+    """Demonstrate fluent from_() methods."""
+    print("\n=== Fluent from_() Methods ===")
     
     temp_dir, src_dir, test_dir, docs_dir, logs_dir, config_dir = create_demo_structure()
     
@@ -94,11 +94,11 @@ def demo_fluent_from_methods():
     for file in py_files:
         print(f"  - {file.relative_to(temp_dir)}")
     
-    # Chaining from_() and from_path()
-    print("\n2. Chaining from_() and from_path():")
+    # Chaining from_() calls
+    print("\n2. Chaining from_() calls:")
     code_files = (PQuery()
                   .from_(src_dir)
-                  .from_path(test_dir)
+                  .from_(test_dir)
                   .where(lambda p: p.suffix == ".py")
                   .files())
     
@@ -106,10 +106,10 @@ def demo_fluent_from_methods():
         print(f"  - {file.relative_to(temp_dir)}")
     
     # Multiple directories
-    print("\n3. Multiple directories with from_path():")
+    print("\n3. Multiple directories with from_():")
     config_files = (PQuery()
                    .from_(config_dir)
-                   .from_path(src_dir)  # Also has config.json
+                   .from_(src_dir)  # Also has config.json
                    .where(lambda p: "config" in p.name.lower() or p.suffix in [".conf", ".json"])
                    .files())
     
@@ -158,8 +158,8 @@ def demo_complex_fluent_queries():
     print("1. Large files OR Python files from multiple directories:")
     large_or_py = (PQuery()
                    .from_(src_dir)
-                   .from_path(logs_dir)
-                   .from_path(docs_dir)
+                   .from_(logs_dir)
+                   .from_(docs_dir)
                    .recursive(True)
                    .where(lambda p: p.size.bytes > 500 or p.suffix == ".py")
                    .files())
@@ -185,14 +185,14 @@ def demo_complex_fluent_queries():
     files1 = (PQuery()
               .recursive(False)
               .from_(src_dir)
-              .from_path(config_dir)
+              .from_(config_dir)
               .where(lambda p: True)
               .count())
     
     # Order 2: from -> recursive -> where
     files2 = (PQuery()
               .from_(src_dir)
-              .from_path(config_dir)
+              .from_(config_dir)
               .recursive(False)
               .where(lambda p: True)
               .count())
@@ -210,7 +210,7 @@ def demo_convenience_methods():
     # Using different result methods
     query = (PQuery()
              .from_(src_dir)
-             .from_path(test_dir)
+             .from_(test_dir)
              .where(lambda p: p.suffix == ".py"))
     
     print("1. Different result methods on same query:")
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     print("\n✨ New Fluent API Features:")
     print("  PQuery()                           # Default to current directory")
     print("  PQuery().from_(path)               # Set starting path")
-    print("  PQuery().from_path(path)           # Add additional path")
+    print("  PQuery().from_(path)               # Add additional path")
     print("  PQuery().recursive(True/False)     # Set recursive behavior")
     print("  PQuery().where(lambda p: ...)      # Add filter condition")
     print("    .files()                         # Get list of files")
