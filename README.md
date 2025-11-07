@@ -1,12 +1,12 @@
 ﻿# TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
 
-TPath is a pathlib extension that provides first-class age, size, and calendar windowing functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
+TPath is a pathlib extension that provides first-class age, size, and calendar membership functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
 
 ## Philosophy: Property-Based File Operations
 
 **The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
 
-Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages and windows, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
+Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages and membership, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
 
 ### The Problem with Raw Timestamps
 
@@ -92,16 +92,16 @@ old_files = [f for f in Path("/var/log").rglob("*")
 ```python
 from tpath import PQuery, matches
 
-# Multi-directory, multi-pattern, calendar-window query in 6 readable lines
-# win_months(-3, 0) = calendar month boundaries (Aug 1st - Oct 31st if today is Oct 15th)
-# Calendar windows ≠ duration math: 90 days ≠ 3 months, avg_days*months ≠ real months
+# Multi-directory, multi-pattern, calendar-membership query in 6 readable lines
+# in_months(-3, 0) = calendar month boundaries (Aug 1st - Oct 31st if today is Oct 15th)
+# Calendar membership ≠ duration math: 90 days ≠ 3 months, avg_days*months ≠ real months
 # TPath makes "this quarter", "this month", "last 3 months" queries natural and correct!
 backup_candidates = list(
     PQuery()
     .from_("/home/user/docs", "/home/user/projects")
     .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*") and
                      p.size.mb >= 1.0 and
-                     p.mtime.cal.win_months(-3, 0))
+                     p.mtime.cal.in_months(-3, 0))
     .select(lambda p: (p, p.size.mb, p.age.days))
 )
 
@@ -147,7 +147,7 @@ path = TPath("my_file.txt")
 # Direct property access - no calculations needed
 print(f"File is {path.age.days} days old")
 print(f"Size: {path.size.mb} MB")
-print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
+print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
 
 # Pattern matching
 print(f"Is Python file: {matches(path, '*.py')}")
@@ -182,9 +182,9 @@ print(f"Modified {path.mtime.age.minutes} minutes ago")
 print(f"File size: {path.size.mb} MB")
 print(f"File size: {path.size.gib} GiB")
 
-# Calendar window properties
-print(f"Modified today: {path.mtime.cal.win_days(0)}")
-print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
+# Calendar membership properties
+print(f"Modified today: {path.mtime.cal.in_days(0)}")
+print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
 ```
 
 ### Shell-Style Pattern Matching
@@ -241,7 +241,7 @@ python_files = list(q.where(lambda p: p.suffix == '.py').files())
 large_files = list(q.where(lambda p: p.size.mb > 10).files())
 
 # Find files by calendar window
-recent_files = list(q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files())
+recent_files = list(q.where(lambda p: p.mtime.cal.in_days(-7, 0)).files())
 
 # Complex combined criteria
 old_large_logs = list(q
@@ -590,7 +590,7 @@ backup_files = (PQuery()
     .recursive(True)
     .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*", "*.ppt*") and
                      p.size.mb > 1 and
-                     p.mtime.cal.win_months(-3, 0))  # Modified in last 3 months
+                     p.mtime.cal.in_months(-3, 0))  # Modified in last 3 months
     .files()
 )
 ```
@@ -644,7 +644,7 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 ### Key Features
 
 - **Intuitive API**: Negative numbers = past, 0 = now, positive = future
-- **Window checking**: `win_*` methods clearly indicate boundary checking (not duration measurement)
+- **Window checking**: `in_*` methods clearly indicate boundary checking (not duration measurement)
 - **Mathematical conventions**: Follows standard mathematical notation for time offsets
 - **Multiple time units**: Minutes, hours, days, months, quarters, years
 
@@ -656,14 +656,14 @@ from tpath import TPath
 path = TPath("document.txt")
 
 # Single time point checks
-path.mtime.cal.win_days(0)        # Modified today
-path.mtime.cal.win_months(0)      # Modified this month  
-path.mtime.cal.win_years(0)       # Modified this year
+path.mtime.cal.in_days(0)        # Modified today
+path.mtime.cal.in_months(0)      # Modified this month  
+path.mtime.cal.in_years(0)       # Modified this year
 
 # Past time windows
-path.mtime.cal.win_days(-1)       # Modified yesterday
-path.mtime.cal.win_hours(-6)      # Modified 6 hours ago
-path.mtime.cal.win_minutes(-30)   # Modified 30 minutes ago
+path.mtime.cal.in_days(-1)       # Modified yesterday
+path.mtime.cal.in_hours(-6)      # Modified 6 hours ago
+path.mtime.cal.in_minutes(-30)   # Modified 30 minutes ago
 ```
 
 ### Range-Based Window Filtering
@@ -672,22 +672,22 @@ The real power comes from range-based filtering using `start` and `end` paramete
 
 ```python
 # Last 7 days through today
-path.mtime.cal.win_days(-7, 0)
+path.mtime.cal.in_days(-7, 0)
 
 # Last 30 days through today  
-path.mtime.cal.win_days(-30, 0)
+path.mtime.cal.in_days(-30, 0)
 
 # From 2 weeks ago through 1 week ago (excluding this week)
-path.mtime.cal.win_days(-14, -7)
+path.mtime.cal.in_days(-14, -7)
 
 # Last 6 months through this month
-path.mtime.cal.win_months(-6, 0)
+path.mtime.cal.in_months(-6, 0)
 
 # Last quarter only (excluding current quarter)
-path.mtime.cal.win_quarters(-1, -1)
+path.mtime.cal.in_quarters(-1, -1)
 
 # Last 2 years through this year
-path.mtime.cal.win_years(-2, 0)
+path.mtime.cal.in_years(-2, 0)
 ```
 
 ### Real-World Examples
@@ -700,26 +700,26 @@ from pathlib import Path
 project_dir = Path("my_project")
 recent_python_files = [
     TPath(f) for f in project_dir.rglob("*.py") 
-    if TPath(f).mtime.cal.win_days(-7, 0)
+    if TPath(f).mtime.cal.in_days(-7, 0)
 ]
 
 # Archive old log files (older than 30 days)
 log_dir = Path("/var/log")
 old_logs = [
     TPath(f) for f in log_dir.glob("*.log")
-    if not TPath(f).mtime.cal.win_days(-30, 0)  # NOT in last 30 days
+    if not TPath(f).mtime.cal.in_days(-30, 0)  # NOT in last 30 days
 ]
 
 # Find large files created this quarter
 large_recent_files = [
     TPath(f) for f in Path("/data").rglob("*")
-    if TPath(f).size.mb > 100 and TPath(f).ctime.cal.win_quarters(0)
+    if TPath(f).size.mb > 100 and TPath(f).ctime.cal.in_quarters(0)
 ]
 
 # Backup files from last month only
 backup_candidates = [
     TPath(f) for f in Path("/important").rglob("*")
-    if TPath(f).mtime.cal.win_months(-1, -1)  # Last month only
+    if TPath(f).mtime.cal.in_months(-1, -1)  # Last month only
 ]
 ```
 
@@ -731,16 +731,16 @@ TPath provides calendar filtering for all timestamp types:
 path = TPath("important_file.txt")
 
 # Creation time windows
-path.ctime.cal.win_days(-7, 0)     # Created in last 7 days
-path.create.cal.win_months(0)      # Created this month (alias)
+path.ctime.cal.in_days(-7, 0)     # Created in last 7 days
+path.create.cal.in_months(0)      # Created this month (alias)
 
 # Modification time windows  
-path.mtime.cal.win_hours(-6, 0)    # Modified in last 6 hours
-path.modify.cal.win_days(-1)       # Modified yesterday (alias)
+path.mtime.cal.in_hours(-6, 0)    # Modified in last 6 hours
+path.modify.cal.in_days(-1)       # Modified yesterday (alias)
 
 # Access time windows
-path.atime.cal.win_minutes(-30, 0) # Accessed in last 30 minutes
-path.access.cal.win_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
+path.atime.cal.in_minutes(-30, 0) # Accessed in last 30 minutes
+path.access.cal.in_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
 ```
 
 ### Precision vs. Convenience
@@ -750,7 +750,7 @@ path.access.cal.win_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
 ```python
 # This checks if file was modified between "7 days ago at current time" and "now"
 # The actual span varies from ~6-7 days depending on when you run it
-path.mtime.cal.win_days(-7, 0)
+path.mtime.cal.in_days(-7, 0)
 
 # For precise duration checking, use age properties instead:
 path.age.days < 7  # Exactly less than 7 * 24 hours
@@ -807,13 +807,14 @@ if path.age.seconds > expire_time:
 - **Full pathlib compatibility**: Drop-in replacement for pathlib.Path
 - **Natural syntax**: `path.age.days` instead of complex timestamp math
 - **Shell-style pattern matching**: Standalone `matches()` function with fnmatch wildcards
-- **Calendar window filtering**: Intuitive `win_*` methods for time range checking
+- **Calendar window filtering**: Intuitive `in_*` methods for time range checking
 - **Comprehensive time units**: seconds, minutes, hours, days, weeks, months, quarters, years
 - **Multiple size units**: bytes, KB/KiB, MB/MiB, GB/GiB, TB/TiB, PB/PiB
 - **Config file integration**: Parse strings with Size.parse(), Age.parse(), Time.parse()
 - **Different time types**: Handle ctime, mtime, atime separately with user-friendly aliases
 - **Performance optimized**: Cached stat calls to avoid repeated filesystem operations
-- **Mathematical conventions**: Negative = past, 0 = now, positive = future
+- **Mathematical conventions**: Negative = past, 0 = now, positi
+- **Property Based Dates by [Chronos](https://github.com/hucker/chronos)**
 
 ## Development
 

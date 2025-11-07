@@ -30,12 +30,16 @@ class Chronos:
             print("Project overdue")
 
         # Calendar windows
-        if meeting.cal.win_days(0):
+    if meeting.cal.in_days(0):
             print("Meeting was today")
     """
 
     def __init__(
-        self, target_time: dt.datetime, reference_time: dt.datetime | None = None
+        self,
+        target_time: dt.datetime,
+        reference_time: dt.datetime | None = None,
+        fy_start_month: int = 1,
+        holidays: set[str] | None = None,
     ):
         """
         Initialize Chronos with target and reference times.
@@ -43,9 +47,23 @@ class Chronos:
         Args:
             target_time: The datetime to analyze (e.g., file timestamp, meeting time)
             reference_time: Reference time for calculations (defaults to now)
+            fy_start_month: Fiscal year start month (1=Jan, 2=Feb, ... 12=Dec)
+            holidays: Set of date strings (YYYY-MM-DD) that are holidays
+
+        Raises:
+            ValueError: If fy_start_month is not between 1 and 12
         """
-        self.target_time = target_time
-        self.reference_time = reference_time or dt.datetime.now()
+        if not (1 <= fy_start_month <= 12):
+            raise ValueError(f"fy_start_month must be between 1 and 12, got {fy_start_month}")
+        self.target_time:dt.datetime = target_time
+        self.reference_time :dt.datetime= reference_time or dt.datetime.now()
+        self.fy_start_month:int = fy_start_month
+        self.holidays :set[str]= holidays if holidays is not None else set()
+    @property
+    def holiday(self) -> bool:
+        """Return True if target_time is a holiday (in holidays set)."""
+        date_str = self.target_time.strftime('%Y-%m-%d')
+        return date_str in self.holidays
 
     @property
     def age(self) -> Age:
@@ -62,13 +80,14 @@ class Chronos:
 
     @property
     def cal(self):
+
         """
         Get calendar window functionality for target_time.
 
         Returns Cal object for checking if target_time falls within calendar windows.
         """
         # Cal can work directly with Chronos since we have .target_dt and .ref_dt properties
-        return Cal(self)
+        return Cal(self, fy_start_month=self.fy_start_month, holidays=self.holidays)
 
     @property
     def timestamp(self) -> float:
@@ -85,20 +104,6 @@ class Chronos:
         """Get the reference datetime for TimeSpan compatibility."""
         return self.reference_time
 
-    @property
-    def datetime(self) -> dt.datetime:
-        """Get the datetime object for target_time (backward compatibility)."""
-        return self.target_time
-
-    @property
-    def date_time(self) -> dt.datetime:
-        """Get the datetime object for target_time."""
-        return self.target_time
-
-    @property
-    def base_time(self) -> dt.datetime:
-        """Get the reference time (backward compatibility)."""
-        return self.reference_time
 
     @staticmethod
     def parse(time_str: str, reference_time: dt.datetime | None = None):
@@ -159,26 +164,6 @@ class Chronos:
         """
         return Chronos(self.target_time, reference_time)
 
-    # Convenience properties for common operations
-    @property
-    def seconds_ago(self) -> float:
-        """Number of seconds between reference_time and target_time."""
-        return (self.reference_time - self.target_time).total_seconds()
-
-    @property
-    def minutes_ago(self) -> float:
-        """Number of minutes between reference_time and target_time."""
-        return self.seconds_ago / 60
-
-    @property
-    def hours_ago(self) -> float:
-        """Number of hours between reference_time and target_time."""
-        return self.seconds_ago / 3600
-
-    @property
-    def days_ago(self) -> float:
-        """Number of days between reference_time and target_time."""
-        return self.seconds_ago / 86400
 
     def __repr__(self) -> str:
         """String representation of Chronos object."""

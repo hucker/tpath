@@ -8,7 +8,7 @@ having datetime and base_time properties (Time or Chronos objects).
 import datetime as dt
 from typing import TYPE_CHECKING, Protocol
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     pass
 
 
@@ -18,12 +18,13 @@ class TimeSpan(Protocol):
     @property
     def target_dt(self) -> dt.datetime:
         """The target datetime being analyzed."""
-        ...
+        raise NotImplementedError
 
     @property
     def ref_dt(self) -> dt.datetime:
         """The reference datetime for span calculations."""
-        ...
+        raise NotImplementedError
+
 
 
 def normalize_weekday(day_spec: str) -> int:
@@ -92,9 +93,32 @@ def normalize_weekday(day_spec: str) -> int:
 class Cal:
     """Calendar window filtering functionality for TimeSpan objects."""
 
-    def __init__(self, time_span: TimeSpan) -> None:
+    def __init__(self, time_span: TimeSpan, fy_start_month: int = 1, holidays: set[str] | None = None) -> None:
         """Initialize with a TimeSpan object to provide calendar filtering methods."""
         self.time_span: TimeSpan = time_span
+        self.fy_start_month: int = fy_start_month
+        self.holidays: set[str] = holidays if holidays is not None else set()
+    @property
+    def holiday(self) -> bool:
+        """Return True if dt_val is a holiday (in holidays set)."""
+        date_str = self.dt_val.strftime('%Y-%m-%d')
+        return date_str in self.holidays
+    @property
+    def fiscal_year(self) -> int:
+        """Return the fiscal year for dt_val based on fy_start_month."""
+        month = self.dt_val.month
+        year = self.dt_val.year
+        if month >= self.fy_start_month:
+            return year
+        else:
+            return year - 1
+
+    @property
+    def fiscal_quarter(self) -> int:
+        """Return the fiscal quarter for dt_val based on fy_start_month."""
+        month = self.dt_val.month
+        offset = (month - self.fy_start_month) % 12
+        return (offset // 3) + 1
 
     @property
     def dt_val(self) -> dt.datetime:
@@ -106,7 +130,7 @@ class Cal:
         """Get reference datetime from the time span."""
         return self.time_span.ref_dt
 
-    def win_minutes(self, start: int = 0, end: int | None = None) -> bool:
+    def in_minutes(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the minute window(s) from start to end.
 
         Args:
@@ -114,17 +138,16 @@ class Cal:
             end: Minutes from now to end range (defaults to start for single minute)
 
         Examples:
-            chronos.cal.win_minutes(0)          # This minute (now)
-            chronos.cal.win_minutes(-5)         # 5 minutes ago only
-            chronos.cal.win_minutes(-10, -5)    # From 10 minutes ago through 5 minutes ago
-            chronos.cal.win_minutes(-30, 0)     # Last 30 minutes through now
+            chronos.cal.in_minutes(0)          # This minute (now)
+            chronos.cal.in_minutes(-5)         # 5 minutes ago only
+            chronos.cal.in_minutes(-10, -5)    # From 10 minutes ago through 5 minutes ago
+            chronos.cal.in_minutes(-30, 0)     # Last 30 minutes through now
         """
         if end is None:
             end = start
 
-        # Ensure proper order (start <= end, since we want chronological order)
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         target_time = self.dt_val
 
@@ -137,7 +160,7 @@ class Cal:
 
         return start_minute <= target_time < end_minute
 
-    def win_hours(self, start: int = 0, end: int | None = None) -> bool:
+    def in_hours(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the hour window(s) from start to end.
 
         Args:
@@ -145,16 +168,16 @@ class Cal:
             end: Hours from now to end range (defaults to start for single hour)
 
         Examples:
-            chronos.cal.win_hours(0)          # This hour (now)
-            chronos.cal.win_hours(-2)         # 2 hours ago only
-            chronos.cal.win_hours(-6, -1)     # From 6 hours ago through 1 hour ago
-            chronos.cal.win_hours(-24, 0)     # Last 24 hours through now
+            chronos.cal.in_hours(0)          # This hour (now)
+            chronos.cal.in_hours(-2)         # 2 hours ago only
+            chronos.cal.in_hours(-6, -1)     # From 6 hours ago through 1 hour ago
+            chronos.cal.in_hours(-24, 0)     # Last 24 hours through now
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         target_time = self.dt_val
 
@@ -169,7 +192,7 @@ class Cal:
 
         return start_hour <= target_time < end_hour
 
-    def win_days(self, start: int = 0, end: int | None = None) -> bool:
+    def in_days(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the day window(s) from start to end.
 
         Args:
@@ -177,16 +200,17 @@ class Cal:
             end: Days from now to end range (defaults to start for single day)
 
         Examples:
-            chronos.cal.win_days(0)          # Today only
-            chronos.cal.win_days(-1)         # Yesterday only
-            chronos.cal.win_days(-7, -1)     # From 7 days ago through yesterday
-            chronos.cal.win_days(-30, 0)     # Last 30 days through today
+            chronos.cal.in_days(0)          # Today only
+            chronos.cal.in_days(-1)         # Yesterday only
+            chronos.cal.in_days(-7, -1)     # From 7 days ago through yesterday
+            chronos.cal.in_days(-30, 0)     # Last 30 days through today
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            msg = f"start ({start}) must not be greater than end ({end})"
+            raise ValueError(msg)
 
         target_date = self.dt_val.date()
 
@@ -196,7 +220,7 @@ class Cal:
 
         return start_date <= target_date <= end_date
 
-    def win_months(self, start: int = 0, end: int | None = None) -> bool:
+    def in_months(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the month window(s) from start to end.
 
         Args:
@@ -204,16 +228,16 @@ class Cal:
             end: Months from now to end range (defaults to start for single month)
 
         Examples:
-            chronos.cal.win_months(0)          # This month
-            chronos.cal.win_months(-1)         # Last month only
-            chronos.cal.win_months(-6, -1)     # From 6 months ago through last month
-            chronos.cal.win_months(-12, 0)     # Last 12 months through this month
+            chronos.cal.in_months(0)          # This month
+            chronos.cal.in_months(-1)         # Last month only
+            chronos.cal.in_months(-6, -1)     # From 6 months ago through last month
+            chronos.cal.in_months(-12, 0)     # Last 12 months through this month
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         target_time = self.dt_val
         base_year = self.base_time.year
@@ -246,7 +270,7 @@ class Cal:
 
         return start_month_index <= file_month_index <= end_month_index
 
-    def win_quarters(self, start: int = 0, end: int | None = None) -> bool:
+    def in_quarters(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the quarter window(s) from start to end.
 
         Args:
@@ -254,16 +278,16 @@ class Cal:
             end: Quarters from now to end range (defaults to start for single quarter)
 
         Examples:
-            chronos.cal.win_quarters(0)          # This quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
-            chronos.cal.win_quarters(-1)         # Last quarter
-            chronos.cal.win_quarters(-4, -1)     # From 4 quarters ago through last quarter
-            chronos.cal.win_quarters(-8, 0)      # Last 8 quarters through this quarter
+            chronos.cal.in_quarters(0)          # This quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
+            chronos.cal.in_quarters(-1)         # Last quarter
+            chronos.cal.in_quarters(-4, -1)     # From 4 quarters ago through last quarter
+            chronos.cal.in_quarters(-8, 0)      # Last 8 quarters through this quarter
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         target_time = self.dt_val
         base_time = self.base_time
@@ -304,7 +328,7 @@ class Cal:
 
         return start_quarter_index <= target_quarter_index <= end_quarter_index
 
-    def win_years(self, start: int = 0, end: int | None = None) -> bool:
+    def in_years(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the year window(s) from start to end.
 
         Args:
@@ -312,16 +336,16 @@ class Cal:
             end: Years from now to end range (defaults to start for single year)
 
         Examples:
-            chronos.cal.win_years(0)          # This year
-            chronos.cal.win_years(-1)         # Last year only
-            chronos.cal.win_years(-5, -1)     # From 5 years ago through last year
-            chronos.cal.win_years(-10, 0)     # Last 10 years through this year
+            chronos.cal.in_years(0)          # This year
+            chronos.cal.in_years(-1)         # Last year only
+            chronos.cal.in_years(-5, -1)     # From 5 years ago through last year
+            chronos.cal.in_years(-10, 0)     # Last 10 years through this year
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         target_year = self.dt_val.year
         base_year = self.base_time.year
@@ -332,7 +356,7 @@ class Cal:
 
         return start_year <= target_year <= end_year
 
-    def win_weeks(
+    def in_weeks(
         self, start: int = 0, end: int | None = None, week_start: str = "monday"
     ) -> bool:
         """True if timestamp falls within the week window(s) from start to end.
@@ -347,16 +371,16 @@ class Cal:
                 - Case insensitive
 
         Examples:
-            chronos.cal.win_weeks(0)                     # This week (Monday start)
-            chronos.cal.win_weeks(-1, week_start='sun')  # Last week (Sunday start)
-            chronos.cal.win_weeks(-4, 0)                 # Last 4 weeks through this week
-            chronos.cal.win_weeks(-2, -1, 'sunday')      # 2-1 weeks ago (Sunday weeks)
+            chronos.cal.in_weeks(0)                     # This week (Monday start)
+            chronos.cal.in_weeks(-1, week_start='sun')  # Last week (Sunday start)
+            chronos.cal.in_weeks(-4, 0)                 # Last 4 weeks through this week
+            chronos.cal.in_weeks(-2, -1, 'sunday')      # 2-1 weeks ago (Sunday weeks)
         """
         if end is None:
             end = start
 
         if start > end:
-            start, end = end, start
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
 
         # Normalize the week start day
         week_start_day = normalize_weekday(week_start)
