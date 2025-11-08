@@ -1,54 +1,49 @@
-"""Tests for PQuery take() and sort() methods."""
+
+"""
+Tests for PQuery take() and sort() methods.
+"""
+
+
+
 
 import os
 import tempfile
+import time
 from pathlib import Path
-
+from collections.abc import Generator
 import pytest
-
 from tpath import PQuery, TPath
 
-
 @pytest.fixture
-def test_files():
+def test_files() -> Generator[Path, None, None]:
     """Create a temporary directory with test files of various sizes and ages."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-
-        # Create files with different sizes and names
+        # Arrange
         files_info = [
-            ("small.txt", 100, 1000),  # 100 bytes, created 1000 seconds ago
-            ("medium.txt", 5000, 800),  # 5KB, created 800 seconds ago
-            ("large.txt", 50000, 600),  # 50KB, created 600 seconds ago
-            ("huge.txt", 500000, 400),  # 500KB, created 400 seconds ago
-            ("tiny.txt", 10, 200),  # 10 bytes, created 200 seconds ago
-            ("alpha.txt", 1000, 300),  # 1KB, created 300 seconds ago
-            ("beta.txt", 2000, 500),  # 2KB, created 500 seconds ago
-            ("gamma.txt", 3000, 700),  # 3KB, created 700 seconds ago
+            ("small.txt", 100, 1000),
+            ("medium.txt", 5000, 800),
+            ("large.txt", 50000, 600),
+            ("huge.txt", 500000, 400),
+            ("tiny.txt", 10, 200),
+            ("alpha.txt", 1000, 300),
+            ("beta.txt", 2000, 500),
+            ("gamma.txt", 3000, 700),
         ]
-
-        import time
-
         current_time = time.time()
-
         for name, size, age_seconds in files_info:
             file_path = temp_path / name
-
-            # Create file with specific size
             with open(file_path, "w") as f:
                 f.write("x" * size)
-
-            # Set modification time
             mtime = current_time - age_seconds
             os.utime(file_path, (mtime, mtime))
-
         yield temp_path
 
 
 class TestTakeMethod:
     """Tests for the take() method."""
 
-    def test_take_without_key(self, test_files):
+    def test_take_without_key(self, test_files: Path) -> None:
         """Test take() without key just returns first n files."""
         query = PQuery().from_(paths=test_files)
         files = query.take(3)
@@ -56,7 +51,7 @@ class TestTakeMethod:
         assert len(files) == 3
         assert all(isinstance(f, TPath) for f in files)
 
-    def test_take_largest_files(self, test_files):
+    def test_take_largest_files(self, test_files: Path) -> None:
         """Test take() with size key returns largest files."""
         query = PQuery().from_(paths=test_files)
         largest = query.take(3, key=lambda p: p.size.bytes)
@@ -71,7 +66,7 @@ class TestTakeMethod:
         sizes = [f.size.bytes for f in largest]
         assert sizes == sorted(sizes, reverse=True)
 
-    def test_take_smallest_files(self, test_files):
+    def test_take_smallest_files(self, test_files: Path) -> None:
         """Test take() with reverse=False returns smallest files."""
         query = PQuery().from_(paths=test_files)
         smallest = query.take(3, key=lambda p: p.size.bytes, reverse=False)
@@ -86,7 +81,7 @@ class TestTakeMethod:
         sizes = [f.size.bytes for f in smallest]
         assert sizes == sorted(sizes)
 
-    def test_take_newest_files(self, test_files):
+    def test_take_newest_files(self, test_files: Path) -> None:
         """Test take() with mtime key returns newest files."""
         query = PQuery().from_(paths=test_files)
         newest = query.take(3, key=lambda p: p.mtime.timestamp)
@@ -96,7 +91,7 @@ class TestTakeMethod:
         timestamps = [f.mtime.timestamp for f in newest]
         assert timestamps == sorted(timestamps, reverse=True)
 
-    def test_take_oldest_files(self, test_files):
+    def test_take_oldest_files(self, test_files: Path) -> None:
         """Test take() with mtime and reverse=False returns oldest files."""
         query = PQuery().from_(paths=test_files)
         oldest = query.take(3, key=lambda p: p.mtime.timestamp, reverse=False)
@@ -106,7 +101,7 @@ class TestTakeMethod:
         timestamps = [f.mtime.timestamp for f in oldest]
         assert timestamps == sorted(timestamps)
 
-    def test_take_multi_column_sort(self, test_files):
+    def test_take_multi_column_sort(self, test_files: Path) -> None:
         """Test take() with tuple key for multi-column sorting."""
         query = PQuery().from_(paths=test_files)
 
@@ -124,7 +119,7 @@ class TestTakeMethod:
         for i in range(len(sizes) - 1):
             assert sizes[i] >= sizes[i + 1], f"Size not in descending order: {sizes}"
 
-    def test_take_more_than_available(self, test_files):
+    def test_take_more_than_available(self, test_files: Path) -> None:
         """Test take() when requesting more files than available."""
         query = PQuery().from_(paths=test_files)
         files = query.take(100, key=lambda p: p.size.bytes)
@@ -132,7 +127,7 @@ class TestTakeMethod:
         # Should return all available files (8 total)
         assert len(files) == 8
 
-    def test_take_zero_files(self, test_files):
+    def test_take_zero_files(self, test_files: Path) -> None:
         """Test take() with n=0."""
         query = PQuery().from_(paths=test_files)
         files = query.take(0, key=lambda p: p.size.bytes)
@@ -140,7 +135,7 @@ class TestTakeMethod:
         assert len(files) == 0
         assert files == []
 
-    def test_take_with_where_filter(self, test_files):
+    def test_take_with_where_filter(self, test_files: Path) -> None:
         """Test take() combined with where() filter."""
         query = (
             PQuery().from_(paths=test_files).where(lambda p: p.size.bytes > 1000)
@@ -158,7 +153,7 @@ class TestTakeMethod:
 class TestSortMethod:
     """Tests for the sort() method."""
 
-    def test_sort_by_size_ascending(self, test_files):
+    def test_sort_by_size_ascending(self, test_files: Path) -> None:
         """Test sort() by size in ascending order."""
         query = PQuery().from_(paths=test_files)
         files = query.sort(key=lambda p: p.size.bytes)
@@ -172,7 +167,7 @@ class TestSortMethod:
         # Last should be largest
         assert files[-1].name == "huge.txt"
 
-    def test_sort_by_size_descending(self, test_files):
+    def test_sort_by_size_descending(self, test_files: Path) -> None:
         """Test sort() by size in descending order."""
         query = PQuery().from_(paths=test_files)
         files = query.sort(key=lambda p: p.size.bytes, reverse=True)
@@ -186,7 +181,7 @@ class TestSortMethod:
         # Last should be smallest
         assert files[-1].name == "tiny.txt"
 
-    def test_sort_by_name(self, test_files):
+    def test_sort_by_name(self, test_files: Path) -> None:
         """Test sort() by filename."""
         query = PQuery().from_(paths=test_files)
         files = query.sort(key=lambda p: p.name)
@@ -198,7 +193,7 @@ class TestSortMethod:
         # Should start with "alpha.txt"
         assert files[0].name == "alpha.txt"
 
-    def test_sort_by_mtime(self, test_files):
+    def test_sort_by_mtime(self, test_files: Path) -> None:
         """Test sort() by modification time."""
         query = PQuery().from_(paths=test_files)
         files = query.sort(key=lambda p: p.mtime.timestamp)
@@ -207,7 +202,7 @@ class TestSortMethod:
         timestamps = [f.mtime.timestamp for f in files]
         assert timestamps == sorted(timestamps)
 
-    def test_sort_multi_column(self, test_files):
+    def test_sort_multi_column(self, test_files: Path) -> None:
         """Test sort() with tuple key for multi-column sorting."""
         query = PQuery().from_(paths=test_files)
 
@@ -220,7 +215,7 @@ class TestSortMethod:
         expected_keys = [(f.name[0], f.size.bytes) for f in files]
         assert expected_keys == sorted(expected_keys)
 
-    def test_sort_without_key(self, test_files):
+    def test_sort_without_key(self, test_files: Path) -> None:
         """Test sort() without key sorts by default TPath ordering."""
         query = PQuery().from_(paths=test_files)
         files = query.sort()
@@ -230,7 +225,7 @@ class TestSortMethod:
         names = [f.name for f in files]
         assert names == sorted(names)
 
-    def test_sort_with_where_filter(self, test_files):
+    def test_sort_with_where_filter(self, test_files: Path) -> None:
         """Test sort() combined with where() filter."""
         query = (
             PQuery()
@@ -252,7 +247,7 @@ class TestSortMethod:
 class TestTakeVsSortPerformance:
     """Tests comparing take() vs sort() behavior."""
 
-    def test_take_vs_sort_results(self, test_files):
+    def test_take_vs_sort_results(self, test_files: Path) -> None:
         """Test that take() and sort() give same results for top-k."""
         query = PQuery().from_(paths=test_files)
 
@@ -266,7 +261,7 @@ class TestTakeVsSortPerformance:
             assert take_file.name == sort_file.name
             assert take_file.size.bytes == sort_file.size.bytes
 
-    def test_take_efficiency_vs_sort(self, test_files):
+    def test_take_efficiency_vs_sort(self, test_files: Path) -> None:
         """Test that take() is efficient for small k vs large n."""
         query = PQuery().from_(paths=test_files)
 
@@ -300,7 +295,7 @@ class TestEdgeCases:
         assert query.take(5) == []
         assert query.sort() == []
 
-    def test_negative_take_count(self, test_files):
+    def test_negative_take_count(self, test_files: Path) -> None:
         """Test take() with negative count."""
         query = PQuery().from_(paths=test_files)
 

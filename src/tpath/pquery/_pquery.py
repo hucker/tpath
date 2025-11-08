@@ -4,7 +4,7 @@ Path querying functionality for TPath objects.
 Provides a pathql-inspired API for querying files with lambda expressions.
 """
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from pathlib import Path
 from typing import Any, TypeAlias
 
@@ -23,6 +23,37 @@ class PQuery:
 
     Similar to pathql but using lambda expressions for flexible filtering.
     """
+
+    def select(
+        self, field: Callable[[TPath], Any], continue_on_exc: bool = True
+    ) -> Iterator[Any]:
+        """
+        Execute the query and return selected fields from matching files as an iterator.
+
+        Args:
+            field: Lambda function that takes a TPath and returns any value
+
+        Returns:
+            Iterator[Any]: Iterator of selected values from matching files
+
+        Examples:
+            # Stream processing (memory efficient)
+            for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
+                process_size(size)
+
+            # Materialize when needed
+            file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
+        """
+
+        def gen():
+            for path in self._iter_files():
+                try:
+                    yield field(path)
+                except Exception:
+                    if not continue_on_exc:
+                        raise
+
+        return gen()
 
     def __init__(
         self,
@@ -47,15 +78,15 @@ class PQuery:
             PQuery(from_="/src", recursive=False, where=lambda p: p.size.mb > 1)  # /src, non-recursive, large files
         """
         # Store constructor parameters for lazy evaluation
-        self._init_from = from_
-        self._init_recursive = recursive
-        self._init_where = where
+        self._init_from: PathLike | None = from_
+        self._init_recursive: bool | None = recursive
+        self._init_where: Callable[[TPath], bool] | None = where
 
         # Working state - will be populated when query runs
         self.start_paths: list[TPath] = []
-        self.is_recursive: bool = True  # Default, may be overridden
-        self._query_func: Callable[[TPath], bool] | None = None
-        self._use_distinct: bool = False  # Whether to deduplicate results
+        self.is_recursive: bool = True
+        self._query_func: list[Callable[[TPath], bool]] = []
+        self._use_distinct: bool = False
 
     def from_(self, *, paths: PathInput) -> "PQuery":
         """
@@ -84,7 +115,9 @@ class PQuery:
             if isinstance(path_input, str | Path | TPath):
                 # Single path
                 flattened_paths.append(path_input)
-            elif hasattr(path_input, '__iter__') and not isinstance(path_input, str | bytes):
+            elif hasattr(path_input, "__iter__") and not isinstance(
+                path_input, str | bytes
+            ):
                 # Sequence of paths (list, tuple, etc.) - but not string/bytes
                 flattened_paths.extend(path_input)  # type: ignore[arg-type]
             else:
@@ -106,48 +139,86 @@ class PQuery:
                 for path in flattened_paths
             ]
         else:
-            # Otherwise add to the list
             self.start_paths.extend(
                 path if isinstance(path, TPath) else TPath(path)
                 for path in flattened_paths
             )
         return self
 
+    def take(
+        self,
+        limit: int,
+        key: Callable[[TPath], Any] | None = None,
+        reverse: bool = True,
+        continue_on_exc: bool = True,
+    ) -> list[TPath]:
+        """
+        Take the top limit files, optionally ordered by a key function.
+
+        This method is optimized for getting the "best" limit files without sorting all results.
+        Uses heapq.nlargest/nsmallest for O(n log k) performance when key is provided.
+
+        Args:
+            limit: Number of files to return
+            key: Optional function to extract comparison key from TPath
+                Can return a single value or tuple for multi-column sorting
+            reverse: If True (default), return largest/newest items
+                    If False, return smallest/oldest items
+
+        Returns:
+            list[TPath]: Up to limit files matching the criteria
+
+        Examples:
+            # Get 10 largest files (most common case)
+            # largest = query.take(10, key=lambda p: p.size.bytes)
+
+            # Get 5 oldest files
+            # oldest = query.take(5, key=lambda p: p.mtime.timestamp, reverse=False)
+
+            # Multi-column sort: largest files, then most recent
+            # best = query.take(10, key=lambda p: (p.size.bytes, p.mtime.timestamp))
+
+            # Just any 10 files (no ordering)
+            # any_files = query.take(10)
+        """
+        import heapq  # noqa: F401 # Lazy import for performance optimization
+
+        def safe_iter():
+            for path in self._iter_files():
+                try:
+                    yield path
+                except Exception:
+                    if not continue_on_exc:
+                        raise
+
+        if key is None:
+            result: list[TPath] = []
+            for i, path in enumerate(safe_iter()):
+                if i >= limit:
+                    break
+                result.append(path)
+            return result
+        if reverse:
+            return heapq.nlargest(limit, safe_iter(), key=key)
+        else:
+            return heapq.nsmallest(limit, safe_iter(), key=key)
+
     def distinct(self) -> "PQuery":
         """
         Enable deduplication of results at the generator level.
 
-        This method enables efficient duplicate removal by tracking seen files in a set
-        during iteration. Only the first occurrence of each unique file path is yielded.
+        This method enables efficient duplicate removal by tracking seen files in a set.
         Particularly useful when searching multiple overlapping directories or when
         symbolic links might create duplicate references.
 
         Returns:
             PQuery: Self for method chaining
 
-        Examples:
-            # Remove duplicates when searching multiple directories that might overlap
-            unique_logs = PQuery().from_(paths=["./logs", "./backup/logs"]).distinct().files()
-
-            # Get first 10 unique Python files (stops early when 10 found)
-            first_unique = (PQuery()
-                           .from_(paths=["./src", "./lib", "./vendor"])
-                           .where(lambda p: p.suffix == ".py")
-                           .distinct()
-                           .take(10))
-
-            # Handle symbolic links that might create duplicates
-            real_configs = (PQuery()
-                           .from_(paths=["./config", "./etc/config"])
-                           .where(lambda p: p.suffix == ".yaml")
-                           .distinct()
-                           .files())
+        Example:
+            query = pquery(from_="./src").where(lambda p: p.suffix == ".py").distinct().take(10)
 
         Performance Notes:
             - Uses O(k) memory where k = number of unique files processed
-            - Enables early termination: distinct().take(n) can stop after finding n unique items
-            - More efficient than post-processing with set(results) for large datasets
-            - Order of first occurrence is preserved
         """
         self._use_distinct = True
         return self
@@ -172,43 +243,68 @@ class PQuery:
         )
         return self
 
-    def where(self, query: Callable[[TPath], bool]) -> "PQuery":
+    def where(
+        self, condition: Callable[[TPath], bool] | Iterable[Callable[[TPath], bool]]
+    ) -> "PQuery":
         """
-        Add a filter condition using a lambda expression.
+        Add a query condition using a lambda expression.
+
+        Multiple where() calls are combined with AND logic. You can also pass multiple
+        conditions in a single call using a list/tuple of lambdas.
 
         Args:
-            query: Lambda function that takes a TPath and returns bool
+            condition: Lambda function that takes a TPath and returns bool, or a sequence
+                   of such functions (list, tuple, etc.)
 
         Returns:
             PQuery: Self for method chaining
 
-        Example:
-            pquery(from_="/logs").where(lambda p: p.size.gb < 1)
+        Examples:
+            # Multiple separate where() calls
+            pquery(from_="/logs").where(lambda p: p.size.gb < 1).where(lambda p: p.age.days < 7)
+
+            # Conditional sequencing of where clauses
+            q = pquery(from_="/logs")
+            q = q.where(lambda p: p.size > 100)
+            if check_age:
+                q = q.where(lambda p: p.age.year > 1)
+
+            # Single where() call with list of conditions
+            pquery(from_="/logs").where([lambda p: p.suffix == ".txt", lambda p: p.size.mb > 10])
+
+            # Mixed approach
+            pquery(from_="/logs").where(lambda p: p.age.days < 7).where([lambda p: p.suffix == ".txt", lambda p: p.size.mb > 10])
 
         Note:
-            Multiple where() calls are not supported. Use logical operators within a single lambda instead:
-
-            # WRONG: Multiple where() calls (will raise error)
-            .where(lambda p: p.suffix == '.txt').where(lambda p: p.size.mb > 10)
-
-            # CORRECT: Single where() with logical operators
-            .where(lambda p: p.suffix == '.txt' and p.size.mb > 10)
+            Multiple where() calls are combined with AND logic. All conditions must be true
+            for a file to match.
         """
-        # Check if where() has already been called
-        if self._query_func is not None:
-            raise ValueError(
-                "Multiple where() calls are not supported. "
-                "Combine conditions using logical operators within a single lambda instead:\n"
-                "  # WRONG:\n"
-                "  .where(lambda p: condition1).where(lambda p: condition2)\n"
-                "  # CORRECT:\n"
-                "  .where(lambda p: condition1 and condition2)"
+        # Handle both single callable and sequence of callables
+        # Strings and bytes are technically iterable, but not valid callables for this API
+        if isinstance(condition, Iterable) and not isinstance(condition, str | bytes):
+            for func in condition:
+                if not callable(func):
+                    raise TypeError(
+                        f"All items in condition sequence must be callable, got {type(func)}"
+                    )
+                self._query_func.append(func)
+        elif callable(condition):
+            self._query_func.append(condition)
+        else:
+            raise TypeError(
+                f"where() expects a callable or iterable of callables, got {type(condition)}"
             )
-
-        self._query_func = query
         return self
 
-    def _iter_files(self) -> Iterator[TPath]:
+    def _matches_query(self, path: TPath) -> bool:
+        """Check if a path matches all query conditions (AND logic)."""
+        if not self._query_func:
+            return True
+
+        # All conditions must be true (AND logic)
+        return all(func(path) for func in self._query_func)
+
+    def _iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """Internal method to iterate over all matching files."""
         # Apply defaults using null coalescing
         if not self.start_paths:
@@ -219,8 +315,12 @@ class PQuery:
             self._init_recursive if self._init_recursive is not None else True
         )
 
-        if self._query_func is None:
-            self._query_func = self._init_where or (lambda p: p.is_file())
+        if not self._query_func:
+            # Initialize with default or constructor-provided where clause
+            if self._init_where is not None:
+                self._query_func = [self._init_where]
+            else:
+                self._query_func = [lambda p: p.is_file()]
 
         # Set for tracking seen files if distinct is enabled
         seen_files: set[TPath] = set() if self._use_distinct else set()
@@ -230,37 +330,39 @@ class PQuery:
                 continue
 
             if not start_path.is_dir():
-                # If it's a file, just test that single file
                 try:
-                    if self._query_func(start_path):
+                    if self._matches_query(start_path):
                         if not self._use_distinct or start_path not in seen_files:
                             if self._use_distinct:
                                 seen_files.add(start_path)
                             yield start_path
                 except (OSError, PermissionError):
+                    if not continue_on_exc:
+                        raise
                     continue
                 continue
 
-            # Use glob or rglob based on recursive flag
             try:
                 glob_method = start_path.rglob if self.is_recursive else start_path.glob
                 for path in glob_method("*"):
                     if path.is_file():  # Only yield files, not directories
                         tpath = TPath(path)
                         try:
-                            if self._query_func(tpath):
+                            if self._matches_query(tpath):
                                 if not self._use_distinct or tpath not in seen_files:
                                     if self._use_distinct:
                                         seen_files.add(tpath)
                                     yield tpath
                         except (OSError, PermissionError):
-                            # Skip files we can't access
+                            if not continue_on_exc:
+                                raise
                             continue
             except (OSError, PermissionError):
-                # Handle cases where we can't read the directory
+                if not continue_on_exc:
+                    raise
                 continue
 
-    def files(self) -> Iterator[TPath]:
+    def files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """
         Execute the query and return matching files as an iterator.
 
@@ -275,31 +377,19 @@ class PQuery:
             # Materialize when needed
             all_files = list(pquery(from_=paths).distinct().files())
         """
-        return self._iter_files()
 
-    # Remove the old distinct() method - it will be on PQueryResult instead
+        def gen():
+            for path in self._iter_files():
+                try:
+                    yield path
+                except Exception as exc:
+                    print(f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}")
+                    if not continue_on_exc:
+                        raise
 
-    def select(self, selector: Callable[[TPath], Any]) -> Iterator[Any]:
-        """
-        Execute the query and return selected properties from matching files as an iterator.
+        return gen()
 
-        Args:
-            selector: Lambda function that takes a TPath and returns any value
-
-        Returns:
-            Iterator[Any]: Iterator of selected values from matching files
-
-        Examples:
-            # Stream processing (memory efficient)
-            for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
-                process_size(size)
-
-            # Materialize when needed
-            file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
-        """
-        return (selector(path) for path in self._iter_files())
-
-    def first(self) -> TPath | None:
+    def first(self, continue_on_exc: bool = True) -> TPath | None:
         """
         Return the first matching file or None if no matches.
 
@@ -309,8 +399,9 @@ class PQuery:
         Example:
             latest_error = pquery(from_="./logs").where(lambda p: "error" in p.name).first()
         """
+        it = self.files(continue_on_exc=continue_on_exc)
         try:
-            return next(self._iter_files())
+            return next(it)
         except StopIteration:
             return None
 
@@ -330,7 +421,7 @@ class PQuery:
         except StopIteration:
             return False
 
-    def count(self) -> int:
+    def count(self, continue_on_exc: bool = True) -> int:
         """
         Count the number of matching files.
 
@@ -340,59 +431,13 @@ class PQuery:
         Example:
             num_python_files = pquery(from_="./src").where(lambda p: p.suffix == ".py").count()
         """
-        return sum(1 for _ in self._iter_files())
-
-    def take(
-        self, n: int, key: Callable[[TPath], Any] | None = None, reverse: bool = True
-    ) -> list[TPath]:
-        """
-        Take the top n files, optionally ordered by a key function.
-
-        This method is optimized for getting the "best" n files without sorting all results.
-        Uses heapq.nlargest/nsmallest for O(n log k) performance when key is provided.
-
-        Args:
-            n: Number of files to return
-            key: Optional function to extract comparison key from TPath
-                Can return a single value or tuple for multi-column sorting
-            reverse: If True (default), return largest/newest items
-                    If False, return smallest/oldest items
-
-        Returns:
-            list[TPath]: Up to n files matching the criteria
-
-        Examples:
-            # Get 10 largest files (most common case)
-            largest = query.take(10, key=lambda p: p.size.bytes)
-
-            # Get 5 oldest files
-            oldest = query.take(5, key=lambda p: p.mtime.timestamp, reverse=False)
-
-            # Multi-column sort: largest files, then most recent
-            best = query.take(10, key=lambda p: (p.size.bytes, p.mtime.timestamp))
-
-            # Just any 10 files (no ordering)
-            any_files = query.take(10)
-        """
-        import heapq  # noqa: F401 # Lazy import for performance optimization
-
-        if key is None:
-            # Simple case: just take first n files
-            result:list[TPath] = []
-            for i, path in enumerate(self._iter_files()):
-                if i >= n:
-                    break
-                result.append(path)
-            return result
-
-        # Efficient top-k using heap - work directly with iterator
-        if reverse:
-            return heapq.nlargest(n, self._iter_files(), key=key)
-        else:
-            return heapq.nsmallest(n, self._iter_files(), key=key)
+        return sum(1 for _ in self.files(continue_on_exc=continue_on_exc))
 
     def sort(
-        self, key: Callable[[TPath], Any] | None = None, reverse: bool = False
+        self,
+        key: Callable[[TPath], Any] | None = None,
+        reverse: bool = False,
+        continue_on_exc: bool = True,
     ) -> list[TPath]:
         """
         Sort all matching files by a key function.
@@ -422,12 +467,23 @@ class PQuery:
             # Sort by name (alphabetical)
             by_name = query.sort(key=lambda p: p.name)
         """
-        files = list(self._iter_files())
+
+        def safe_iter():
+            for path in self._iter_files():
+                try:
+                    yield path
+                except Exception:
+                    if not continue_on_exc:
+                        raise
+
+        files = list(safe_iter())
         if key is None:
             return sorted(files, reverse=reverse)
         return sorted(files, key=key, reverse=reverse)
 
-    def paginate(self, page_size: int = 10) -> Iterator[list[TPath]]:
+    def paginate(
+        self, page_size: int = 10, continue_on_exc: bool = True
+    ) -> Iterator[list[TPath]]:
         """
         Return an iterator that yields pages of files.
 
@@ -458,7 +514,7 @@ class PQuery:
         """
         import itertools  # noqa: F401 # Lazy import - only needed for pagination
 
-        iterator = self._iter_files()
+        iterator = self.files(continue_on_exc=continue_on_exc)
         while True:
             page = list(itertools.islice(iterator, page_size))
             if not page:
