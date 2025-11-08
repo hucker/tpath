@@ -17,7 +17,7 @@ def test_paginate_basic_functionality():
         for i in range(25):
             (temp_path / f"file_{i:02d}.txt").write_text(f"content {i}")
 
-        query = PQuery().from_(temp_dir).where(lambda p: p.suffix == ".txt")
+        query = PQuery().from_(paths=temp_dir).where(lambda p: p.suffix == ".txt")
 
         # Test pagination with page_size=10
         pages = list(query.paginate(10))
@@ -44,7 +44,7 @@ def test_paginate_empty_query():
     with tempfile.TemporaryDirectory() as temp_dir:
         Path(temp_dir)
 
-        query = PQuery().from_(temp_dir).where(lambda p: p.suffix == ".nonexistent")
+        query = PQuery().from_(paths=temp_dir).where(lambda p: p.suffix == ".nonexistent")
         pages = list(query.paginate(10))
 
         # Should return empty list
@@ -60,7 +60,7 @@ def test_paginate_smaller_than_page_size():
         for i in range(5):
             (temp_path / f"file_{i}.txt").write_text(f"content {i}")
 
-        query = PQuery().from_(temp_dir).where(lambda p: p.suffix == ".txt")
+        query = PQuery().from_(paths=temp_dir).where(lambda p: p.suffix == ".txt")
         pages = list(query.paginate(10))
 
         # Should have 1 page with 5 files
@@ -77,7 +77,7 @@ def test_paginate_efficiency_single_scan():
         for i in range(30):
             (temp_path / f"file_{i:02d}.txt").write_text(f"content {i}")
 
-        query = PQuery().from_(temp_dir).where(lambda p: p.suffix == ".txt")
+        query = PQuery().from_(paths=temp_dir).where(lambda p: p.suffix == ".txt")
 
         # Track which files we see in what order
         seen_files = []
@@ -107,7 +107,7 @@ def test_paginate_with_distinct():
             (temp_path / f"file_{i}.txt").write_text(f"content {i}")
 
         # Test that distinct + paginate works
-        query = PQuery().from_(temp_dir).distinct().where(lambda p: p.suffix == ".txt")
+        query = PQuery().from_(paths=temp_dir).distinct().where(lambda p: p.suffix == ".txt")
         pages = list(query.paginate(5))
 
         # Should have 3 pages of 5 each
@@ -132,7 +132,7 @@ def test_paginate_manual_iteration():
         for i in range(12):
             (temp_path / f"file_{i:02d}.txt").write_text(f"content {i}")
 
-        query = PQuery().from_(temp_dir).where(lambda p: p.suffix == ".txt")
+        query = PQuery().from_(paths=temp_dir).where(lambda p: p.suffix == ".txt")
         paginator = query.paginate(5)
 
         # Manually get pages

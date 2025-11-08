@@ -43,13 +43,13 @@ def test_pquery_fluent_from_methods(tmp_path):
         (d / f"file_{d.name}.txt").write_text(f"content from {d.name}")
 
     # Test single from_()
-    query = PQuery().from_(dir1).where(lambda p: p.suffix == ".txt")
+    query = PQuery().from_(paths=dir1).where(lambda p: p.suffix == ".txt")
     files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "file_dir1.txt"
 
     # Test chaining from_() calls
-    query = PQuery().from_(dir1).from_(dir2).where(lambda p: p.suffix == ".txt")
+    query = PQuery().from_(paths=dir1).from_(paths=dir2).where(lambda p: p.suffix == ".txt")
     files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
@@ -58,7 +58,7 @@ def test_pquery_fluent_from_methods(tmp_path):
 
     # Test multiple from_() calls
     query = (
-        PQuery().from_(dir1).from_(dir2).from_(dir3).where(lambda p: p.suffix == ".txt")
+        PQuery().from_(paths=dir1).from_(paths=dir2).from_(paths=dir3).where(lambda p: p.suffix == ".txt")
     )
     files = list(query.files())
     assert len(files) == 3
@@ -78,7 +78,7 @@ def test_pquery_recursive_method(tmp_path):
     (sub_dir / "nested.txt").write_text("nested")
 
     # Test recursive(True) - default
-    query = PQuery().from_(tmp_path).recursive(True).where(lambda p: p.suffix == ".txt")
+    query = PQuery().from_(paths=tmp_path).recursive(True).where(lambda p: p.suffix == ".txt")
     files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
@@ -87,7 +87,7 @@ def test_pquery_recursive_method(tmp_path):
 
     # Test recursive(False)
     query = (
-        PQuery().from_(tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
+        PQuery().from_(paths=tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
     )
     files = list(query.files())
     assert len(files) == 1
@@ -113,8 +113,8 @@ def test_pquery_method_chaining_order(tmp_path):
     # Order 1: from -> recursive -> where
     query1 = (
         PQuery()
-        .from_(dir1)
-        .from_(dir2)
+        .from_(paths=dir1)
+        .from_(paths=dir2)
         .recursive(False)
         .where(lambda p: p.suffix == ".txt")
     )
@@ -124,8 +124,8 @@ def test_pquery_method_chaining_order(tmp_path):
     query2 = (
         PQuery()
         .recursive(False)
-        .from_(dir1)
-        .from_(dir2)
+        .from_(paths=dir1)
+        .from_(paths=dir2)
         .where(lambda p: p.suffix == ".txt")
     )
     files2 = list(query2.files())
@@ -135,8 +135,8 @@ def test_pquery_method_chaining_order(tmp_path):
     query3 = (
         PQuery()
         .recursive(False)
-        .from_(dir1)
-        .from_(dir2)
+        .from_(paths=dir1)
+        .from_(paths=dir2)
         .where(lambda p: p.suffix == ".txt")
     )
     files3 = list(query3.files())
@@ -194,8 +194,8 @@ def test_pquery_fluent_vs_convenience_equivalence(tmp_path):
     # Fluent API
     fluent_files = list(
         PQuery()
-        .from_(dir1)
-        .from_(dir2)
+        .from_(paths=dir1)
+        .from_(paths=dir2)
         .recursive(True)
         .where(lambda p: p.suffix == ".txt")
         .files()
@@ -239,8 +239,8 @@ def test_pquery_complex_fluent_example(tmp_path):
     # - Any files with "test" in the name
     large_py_or_test_files = list(
         PQuery()
-        .from_(src_dir)
-        .from_(test_dir)
+        .from_(paths=src_dir)
+        .from_(paths=test_dir)
         .recursive(True)
         .where(lambda p: (p.suffix == ".py" and p.size.bytes > 500) or "test" in p.name)
         .files()
@@ -265,7 +265,7 @@ def test_pquery_error_handling_fluent(tmp_path):
         tmp_path / "subdir"
     ).mkdir()  # This should be filtered out by default where function
 
-    query = PQuery().from_(tmp_path)
+    query = PQuery().from_(paths=tmp_path)
 
     # Should not raise error and should return files only (not directories)
     files = list(query.files())
@@ -274,6 +274,6 @@ def test_pquery_error_handling_fluent(tmp_path):
     assert files[0].is_file()
 
     # Test error handling for nonexistent paths (should be handled gracefully)
-    nonexistent_query = PQuery().from_(tmp_path / "nonexistent")
+    nonexistent_query = PQuery().from_(paths=tmp_path / "nonexistent")
     files = list(nonexistent_query.files())
     assert len(files) == 0  # Should return empty list, not error

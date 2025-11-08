@@ -33,11 +33,6 @@ def test_time_properties():
         assert isinstance(mtime.age, Age)
         assert isinstance(atime.age, Age)
 
-        print(f"Creation time age: {ctime.age.days:.10f} days")
-        print(f"Modification time age: {mtime.age.days:.10f} days")
-        print(f"Access time age: {atime.age.days:.10f} days")
-
-        print("✅ Time properties tests passed")
 
     finally:
         # Clean up

@@ -50,7 +50,7 @@ def matches(
 
         # Use with PQuery
         from tpath import PQuery
-        log_files = PQuery().from_("./logs").where(lambda p: matches(p, "*.log")).files()
+        log_files = PQuery().from_(paths="./logs").where(lambda p: matches(p, "*.log")).files()
 
     Patterns:
         *        Matches any sequence of characters

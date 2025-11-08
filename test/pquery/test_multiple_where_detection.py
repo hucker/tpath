@@ -37,7 +37,7 @@ def test_single_where_with_combined_logic_works():
         # Single where with combined logic should work
         results = list(
             PQuery()
-            .from_(temp_dir)
+            .from_(paths=temp_dir)
             .where(lambda p: p.suffix == ".txt" and p.size.bytes > 500)
             .files()
         )

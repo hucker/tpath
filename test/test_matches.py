@@ -110,7 +110,7 @@ class TestMatchesFunction:
             from tpath import PQuery
 
             log_files = (
-                PQuery().from_(temp_path).where(lambda p: matches(p, "*.log")).files()
+                PQuery().from_(paths=temp_path).where(lambda p: matches(p, "*.log")).files()
             )
 
             log_names = [f.name for f in log_files]
@@ -121,7 +121,7 @@ class TestMatchesFunction:
             # Multiple patterns
             important_files = (
                 PQuery()
-                .from_(temp_path)
+                .from_(paths=temp_path)
                 .where(lambda p: matches(p, "*.log", "*.json"))
                 .files()
             )

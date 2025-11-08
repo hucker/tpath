@@ -1,3 +1,4 @@
+
 """
 Calendar-based time window filtering for Chronos package.
 
@@ -7,6 +8,8 @@ having datetime and base_time properties (Time or Chronos objects).
 
 import datetime as dt
 from typing import TYPE_CHECKING, Protocol
+
+from ._constants import WEEKDAY_INDEX
 
 if TYPE_CHECKING:  # pragma: no cover
     pass
@@ -55,27 +58,8 @@ def normalize_weekday(day_spec: str) -> int:
     if day_spec.startswith("w-"):
         day_spec = day_spec[2:]
 
-    # Full day names
-    day_names = {
-        "monday": 0,
-        "tuesday": 1,
-        "wednesday": 2,
-        "thursday": 3,
-        "friday": 4,
-        "saturday": 5,
-        "sunday": 6,
-    }
-
-    # 3-letter abbreviations
-    day_abbrev3 = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
-
-    # 2-letter abbreviations
-    day_abbrev2 = {"mo": 0, "tu": 1, "we": 2, "th": 3, "fr": 4, "sa": 5, "su": 6}
-
-    # Check all mappings
-    for mapping in [day_names, day_abbrev3, day_abbrev2]:
-        if day_spec in mapping:
-            return mapping[day_spec]
+    if day_spec in WEEKDAY_INDEX:
+        return WEEKDAY_INDEX[day_spec]
 
     # Generate helpful error message
     valid_examples = [
@@ -98,6 +82,11 @@ class Cal:
         self.time_span: TimeSpan = time_span
         self.fy_start_month: int = fy_start_month
         self.holidays: set[str] = holidays if holidays is not None else set()
+
+
+
+
+
     @property
     def holiday(self) -> bool:
         """Return True if dt_val is a holiday (in holidays set)."""
@@ -131,7 +120,10 @@ class Cal:
         return self.time_span.ref_dt
 
     def in_minutes(self, start: int = 0, end: int | None = None) -> bool:
-        """True if timestamp falls within the minute window(s) from start to end.
+        """
+        True if timestamp falls within the minute window(s) from start to end.
+
+        Uses a half-open interval: start_minute <= target_time < end_minute.
 
         Args:
             start: Minutes from now to start range (negative = past, 0 = current minute, positive = future)
@@ -161,7 +153,10 @@ class Cal:
         return start_minute <= target_time < end_minute
 
     def in_hours(self, start: int = 0, end: int | None = None) -> bool:
-        """True if timestamp falls within the hour window(s) from start to end.
+        """
+        True if timestamp falls within the hour window(s) from start to end.
+
+        Uses a half-open interval: start_hour <= target_time < end_hour.
 
         Args:
             start: Hours from now to start range (negative = past, 0 = current hour, positive = future)
@@ -271,7 +266,10 @@ class Cal:
         return start_month_index <= file_month_index <= end_month_index
 
     def in_quarters(self, start: int = 0, end: int | None = None) -> bool:
-        """True if timestamp falls within the quarter window(s) from start to end.
+        """
+        True if timestamp falls within the quarter window(s) from start to end.
+
+        Uses a half-open interval: start_tuple <= target_tuple < (end_tuple[0], end_tuple[1] + 1).
 
         Args:
             start: Quarters from now to start range (negative = past, 0 = this quarter, positive = future)
@@ -296,37 +294,26 @@ class Cal:
         current_quarter = ((base_time.month - 1) // 3) + 1
         current_year = base_time.year
 
-        # Calculate the start quarter (earliest)
-        start_quarter = current_quarter + start
-        start_year = current_year
-        while start_quarter <= 0:
-            start_quarter += 4
-            start_year -= 1
-        while start_quarter > 4:
-            start_quarter -= 4
-            start_year += 1
+        def normalize_quarter_year(offset: int) -> tuple[int, int]:
+            total_quarters = (current_year * 4 + current_quarter + offset - 1)
+            year = total_quarters // 4
+            quarter = (total_quarters % 4) + 1
+            return year, quarter
 
-        # Calculate the end quarter (latest)
-        end_quarter = current_quarter + end
-        end_year = current_year
-        while end_quarter <= 0:
-            end_quarter += 4
-            end_year -= 1
-        while end_quarter > 4:
-            end_quarter -= 4
-            end_year += 1
+        start_year, start_quarter = normalize_quarter_year(start)
+        end_year, end_quarter = normalize_quarter_year(end)
 
         # Get target's quarter
         target_quarter = ((target_time.month - 1) // 3) + 1
         target_year = target_time.year
 
-        # Check if target falls within the quarter range
-        # Convert quarters to a comparable format (year * 4 + quarter)
-        target_quarter_index = target_year * 4 + target_quarter
-        start_quarter_index = start_year * 4 + start_quarter
-        end_quarter_index = end_year * 4 + end_quarter
+        # Use tuple comparison for (year, quarter)
+        target_tuple = (target_year, target_quarter)
+        start_tuple = (start_year, start_quarter)
+        end_tuple = (end_year, end_quarter)
 
-        return start_quarter_index <= target_quarter_index <= end_quarter_index
+        # Check if target falls within the quarter range: start <= target < end
+        return start_tuple <= target_tuple < (end_tuple[0], end_tuple[1] + 1)
 
     def in_years(self, start: int = 0, end: int | None = None) -> bool:
         """True if timestamp falls within the year window(s) from start to end.
@@ -402,4 +389,92 @@ class Cal:
         return start_week_start <= target_date <= end_week_end
 
 
-__all__ = ["Cal", "TimeSpan"]
+    def in_fiscal_quarters(self, start: int = 0, end: int | None = None) -> bool:
+        """
+        True if timestamp falls within the fiscal quarter window(s) from start to end.
+
+        Uses a half-open interval: start_tuple <= target_tuple < (end_tuple[0], end_tuple[1] + 1).
+
+        Args:
+            start: Fiscal quarters from now to start range (negative = past, 0 = this fiscal quarter, positive = future)
+            end: Fiscal quarters from now to end range (defaults to start for single fiscal quarter)
+
+        Examples:
+            chronos.cal.in_fiscal_quarters(0)          # This fiscal quarter
+            chronos.cal.in_fiscal_quarters(-1)         # Last fiscal quarter
+            chronos.cal.in_fiscal_quarters(-4, -1)     # From 4 fiscal quarters ago through last fiscal quarter
+            chronos.cal.in_fiscal_quarters(-8, 0)      # Last 8 fiscal quarters through this fiscal quarter
+        """
+        if end is None:
+            end = start
+
+        if start > end:
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
+
+        base_time = self.base_time
+        fy_start_month = self.fy_start_month
+
+        fy = Cal.get_fiscal_year(base_time, fy_start_month)
+        fq = Cal.get_fiscal_quarter(base_time, fy_start_month)
+
+        def normalize_fiscal_quarter_year(offset: int) -> tuple[int, int]:
+            total_quarters = (fy * 4 + fq + offset - 1)
+            year = total_quarters // 4
+            quarter = (total_quarters % 4) + 1
+            return year, quarter
+
+        start_year, start_quarter = normalize_fiscal_quarter_year(start)
+        end_year, end_quarter = normalize_fiscal_quarter_year(end)
+
+        target_fy = Cal.get_fiscal_year(self.dt_val, fy_start_month)
+        target_fq = Cal.get_fiscal_quarter(self.dt_val, fy_start_month)
+
+        target_tuple = (target_fy, target_fq)
+        start_tuple = (start_year, start_quarter)
+        end_tuple = (end_year, end_quarter)
+
+        return start_tuple <= target_tuple < (end_tuple[0], end_tuple[1] + 1)
+
+
+    def in_fiscal_years(self, start: int = 0, end: int | None = None) -> bool:
+        """
+        True if timestamp falls within the fiscal year window(s) from start to end.
+
+        Uses a half-open interval: start_year <= target_year < end_year + 1.
+
+        Args:
+            start: Fiscal years from now to start range (negative = past, 0 = this fiscal year, positive = future)
+            end: Fiscal years from now to end range (defaults to start for single fiscal year)
+
+        Examples:
+            chronos.cal.in_fiscal_years(0)          # This fiscal year
+            chronos.cal.in_fiscal_years(-1)         # Last fiscal year
+            chronos.cal.in_fiscal_years(-5, -1)     # From 5 fiscal years ago through last fiscal year
+            chronos.cal.in_fiscal_years(-10, 0)     # Last 10 fiscal years through this fiscal year
+        """
+        if end is None:
+            end = start
+
+        if start > end:
+            raise ValueError(f"start ({start}) must not be greater than end ({end})")
+
+        base_time = self.base_time
+        fy_start_month = self.fy_start_month
+
+        fy = Cal.get_fiscal_year(base_time, fy_start_month)
+        start_year = fy + start
+        end_year = fy + end
+
+        target_fy = Cal.get_fiscal_year(self.dt_val, fy_start_month)
+
+        return start_year <= target_fy < end_year + 1
+    @staticmethod
+    def get_fiscal_year(dt: dt.datetime, fy_start_month: int) -> int:
+        """Return the fiscal year for a given datetime and fiscal year start month."""
+        return dt.year if dt.month >= fy_start_month else dt.year - 1
+
+    @staticmethod
+    def get_fiscal_quarter(dt: dt.datetime, fy_start_month: int) -> int:
+        """Return the fiscal quarter for a given datetime and fiscal year start month."""
+        offset = (dt.month - fy_start_month) % 12 if dt.month >= fy_start_month else (dt.month + 12 - fy_start_month) % 12
+        return (offset // 3) + 1

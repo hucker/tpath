@@ -403,9 +403,13 @@ wheels = [
 name = "tpath"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "coverage" },
+]
 
 [package.optional-dependencies]
 dev = [
+    { name = "coverage" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -423,11 +427,14 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "coverage" },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "coverage", specifier = ">=7.6.1" },
+    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
@@ -440,7 +447,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8.3.5" }]
+dev = [
+    { name = "coverage", specifier = ">=7.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+]
 
 [[package]]
 name = "typing-extensions"

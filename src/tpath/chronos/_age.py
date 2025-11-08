@@ -64,7 +64,8 @@ class Age:
 
     @property
     def years(self) -> float:
-        """Get age in years (approximate - 365.25 days)."""
+        """Get age in years (approximate - 365.25 days, can be negative)."""
+        # Allow negative ages if base_time is before timestamp
         return self.days / DAYS_PER_YEAR
 
     @staticmethod

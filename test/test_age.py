@@ -64,7 +64,7 @@ def test_age_with_custom_base_time():
     try:
         # Test with yesterday as base time
         yesterday = dt.datetime.now() - dt.timedelta(days=1)
-        path_with_base = TPath("test_age_base_file.txt").with_base_time(yesterday)
+        path_with_base = TPath("test_age_base_file.txt").with_base_time(base_time=yesterday)
 
         age = path_with_base.age
         assert isinstance(age, Age)
@@ -76,7 +76,7 @@ def test_age_with_custom_base_time():
 
         # Test with future base time
         tomorrow = dt.datetime.now() + dt.timedelta(days=1)
-        path_future = TPath("test_age_base_file.txt").with_base_time(tomorrow)
+        path_future = TPath("test_age_base_file.txt").with_base_time(base_time=tomorrow)
         future_age = path_future.age
 
         # File should appear "older" (more positive) with future base time

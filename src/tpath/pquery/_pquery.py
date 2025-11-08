@@ -26,6 +26,7 @@ class PQuery:
 
     def __init__(
         self,
+        *,
         from_: PathLike | None = None,
         recursive: bool | None = None,
         where: Callable[[TPath], bool] | None = None,
@@ -43,7 +44,7 @@ class PQuery:
             PQuery(from_="/logs")                       # /logs dir, other defaults when executed
             PQuery(recursive=False)                     # Current dir, non-recursive, files only
             PQuery(where=lambda p: p.suffix == ".py")  # Current dir, recursive, Python files
-            PQuery("/src", False, lambda p: p.size.mb > 1)  # /src, non-recursive, large files
+            PQuery(from_="/src", recursive=False, where=lambda p: p.size.mb > 1)  # /src, non-recursive, large files
         """
         # Store constructor parameters for lazy evaluation
         self._init_from = from_
@@ -56,12 +57,12 @@ class PQuery:
         self._query_func: Callable[[TPath], bool] | None = None
         self._use_distinct: bool = False  # Whether to deduplicate results
 
-    def from_(self, *paths: PathInput) -> "PQuery":
+    def from_(self, *, paths: PathInput) -> "PQuery":
         """
         Set or add starting directory paths.
 
         Args:
-            *paths: One or more starting directory paths, or sequences of paths.
+            paths: One or more starting directory paths, or sequences of paths.
                    Each argument can be a single path (str, Path, TPath) or a
                    sequence of paths (list, tuple, etc.)
 
@@ -69,17 +70,17 @@ class PQuery:
             PQuery: Self for method chaining
 
         Examples:
-            PQuery().from_("/logs").where(lambda p: p.size.gb < 1)
-            PQuery().from_("/logs", "/var/log", "/opt/app/logs").where(lambda p: p.suffix == ".log")
-            PQuery().from_(path_list).where(lambda p: p.suffix == ".txt")  # list of paths
-            PQuery().from_("/logs", path_list, "/var/log").files()  # mixed individual and list
+            PQuery().from_(paths="/logs").where(lambda p: p.size.gb < 1)
+            PQuery().from_(paths=["/logs", "/var/log", "/opt/app/logs"]).where(lambda p: p.suffix == ".log")
+            PQuery().from_(paths=path_list).where(lambda p: p.suffix == ".txt")  # list of paths
+            PQuery().from_(paths=["/logs", path_list, "/var/log"]).files()  # mixed individual and list
         """
         if not paths:
             raise ValueError("At least one path must be provided")
 
         # Flatten any sequences in the arguments with proper type handling
         flattened_paths: list[PathLike] = []
-        for path_input in paths:
+        for path_input in paths if isinstance(paths, list | tuple) else [paths]:
             if isinstance(path_input, str | Path | TPath):
                 # Single path
                 flattened_paths.append(path_input)
@@ -126,18 +127,18 @@ class PQuery:
 
         Examples:
             # Remove duplicates when searching multiple directories that might overlap
-            unique_logs = PQuery().from_("./logs", "./backup/logs").distinct().files()
+            unique_logs = PQuery().from_(paths=["./logs", "./backup/logs"]).distinct().files()
 
             # Get first 10 unique Python files (stops early when 10 found)
             first_unique = (PQuery()
-                           .from_("./src", "./lib", "./vendor")
+                           .from_(paths=["./src", "./lib", "./vendor"])
                            .where(lambda p: p.suffix == ".py")
                            .distinct()
                            .take(10))
 
             # Handle symbolic links that might create duplicates
             real_configs = (PQuery()
-                           .from_("./config", "./etc/config")
+                           .from_(paths=["./config", "./etc/config"])
                            .where(lambda p: p.suffix == ".yaml")
                            .distinct()
                            .files())
@@ -162,7 +163,7 @@ class PQuery:
             PQuery: Self for method chaining
 
         Example:
-            PQuery().from_("/logs").recursive(False).where(lambda p: p.suffix == ".log")
+            PQuery().from_(paths="/logs").recursive(False).where(lambda p: p.suffix == ".log")
         """
         # Override both the working state and the init parameter
         self.is_recursive = recursive
@@ -499,13 +500,13 @@ def pquery(
         all_configs = pquery(from_=["/etc", "/opt/config"]).where(lambda p: p.suffix == ".conf").files()
 
         # Using the fluent API
-        query = PQuery().from_("/logs").from_("/var/log").recursive(True).where(lambda p: p.size.gb > 1)
+        query = PQuery().from_(paths="/logs").from_(paths="/var/log").recursive(True).where(lambda p: p.size.gb > 1)
     """
     query = PQuery().recursive(recursive)
 
     if from_ is not None:
         # Use the from_() method which handles all the type complexity
-        query.from_(from_)
+        query.from_(paths=from_)
 
     return query
 

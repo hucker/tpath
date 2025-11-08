@@ -36,6 +36,7 @@ class Chronos:
 
     def __init__(
         self,
+        *,
         target_time: dt.datetime,
         reference_time: dt.datetime | None = None,
         fy_start_month: int = 1,
@@ -55,15 +56,11 @@ class Chronos:
         """
         if not (1 <= fy_start_month <= 12):
             raise ValueError(f"fy_start_month must be between 1 and 12, got {fy_start_month}")
-        self.target_time:dt.datetime = target_time
-        self.reference_time :dt.datetime= reference_time or dt.datetime.now()
-        self.fy_start_month:int = fy_start_month
-        self.holidays :set[str]= holidays if holidays is not None else set()
-    @property
-    def holiday(self) -> bool:
-        """Return True if target_time is a holiday (in holidays set)."""
-        date_str = self.target_time.strftime('%Y-%m-%d')
-        return date_str in self.holidays
+        self.target_time: dt.datetime = target_time
+        self.reference_time: dt.datetime = reference_time or dt.datetime.now()
+        self.fy_start_month: int = fy_start_month
+        self.holidays: set[str] = holidays if holidays is not None else set()
+
 
     @property
     def age(self) -> Age:
@@ -106,7 +103,7 @@ class Chronos:
 
 
     @staticmethod
-    def parse(time_str: str, reference_time: dt.datetime | None = None):
+    def parse(*, time_str: str, reference_time: dt.datetime | None = None):
         """
         Parse a time string and return a Chronos object.
 
@@ -128,7 +125,7 @@ class Chronos:
         # Handle Unix timestamp (all digits)
         if time_str.isdigit():
             target_time = dt.datetime.fromtimestamp(float(time_str))
-            return Chronos(target_time, reference_time)
+            return Chronos(target_time=target_time, reference_time=reference_time)
 
         # Try common datetime formats
         formats = [
@@ -146,7 +143,7 @@ class Chronos:
         for fmt in formats:
             try:
                 target_time = dt.datetime.strptime(time_str, fmt)
-                return Chronos(target_time, reference_time)
+                return Chronos(target_time=target_time, reference_time=reference_time)
             except ValueError:
                 continue
 
@@ -162,7 +159,7 @@ class Chronos:
         Returns:
             New Chronos object with same target_time but different reference_time
         """
-        return Chronos(self.target_time, reference_time)
+        return Chronos(target_time=self.target_time, reference_time=reference_time)
 
 
     def __repr__(self) -> str:

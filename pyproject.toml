@@ -32,12 +32,15 @@ classifiers = [
 ]
 keywords = ["pathlib", "file", "age", "size", "lambda", "utility"]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "coverage>=7.6.1",
+]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "coverage>=7.0",
     "ruff>=0.1.0",
     "mypy>=1.0",
     "pre-commit>=3.0",
@@ -141,4 +144,6 @@ exclude_lines = [
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
+    "pytest-cov>=4.0",
+    "coverage>=7.0",
 ]

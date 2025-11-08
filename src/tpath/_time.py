@@ -48,12 +48,12 @@ class PathTime:
         if not self.path.exists():
             # For nonexistent files, return current time as the target
             # This means age will be 0 (file is "as old as now")
-            chronos = Chronos(self._ref_dt, self._ref_dt)
+            chronos = Chronos(target_time=self._ref_dt, reference_time=self._ref_dt)
             return chronos.age
 
         # Use Chronos for consistent datetime handling
         target_datetime = self.target_dt
-        chronos = Chronos(target_datetime, self._ref_dt)
+        chronos = Chronos(target_time=target_datetime, reference_time=self._ref_dt)
         return chronos.age
 
     @property
