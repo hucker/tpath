@@ -383,7 +383,9 @@ class PQuery:
                 try:
                     yield path
                 except Exception as exc:
-                    print(f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}")
+                    print(
+                        f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}"
+                    )
                     if not continue_on_exc:
                         raise
 

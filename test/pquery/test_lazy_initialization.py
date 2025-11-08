@@ -2,8 +2,8 @@
 Test lazy initialization of PQuery constructor parameters.
 """
 
-
 from pathlib import Path
+
 from tpath.pquery import PQuery
 
 
@@ -18,6 +18,7 @@ def test_default_constructor_lazy_initialization(tmp_path: Path) -> None:
     # Create temp files to test with
     (tmp_path / "test.txt").write_text("content")
     import os
+
     original_cwd = os.getcwd()
     try:
         os.chdir(str(tmp_path))
@@ -88,9 +89,7 @@ def test_constructor_all_parameters(tmp_path: Path) -> None:
     """Test PQuery constructor with all parameters."""
     (tmp_path / "large.txt").write_text("x" * 1000)
     (tmp_path / "small.txt").write_text("small")
-    query = PQuery(
-        from_=tmp_path, recursive=False, where=lambda p: p.size.bytes > 500
-    )
+    query = PQuery(from_=tmp_path, recursive=False, where=lambda p: p.size.bytes > 500)
     files = list(query.files())
     assert len(files) == 1
     assert files[0].name == "large.txt"
@@ -114,9 +113,7 @@ def test_lazy_initialization_with_chaining(tmp_path: Path) -> None:
     """Test that lazy initialization works with method chaining."""
     (tmp_path / "test.txt").write_text("content")
     # Chain methods before executing
-    query = (
-        PQuery(from_=tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
-    )
+    query = PQuery(from_=tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
     # Before execution, working state should still be empty
     assert query.start_paths == []
     # Execute and verify

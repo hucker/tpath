@@ -1,18 +1,17 @@
-
 """
 Tests for PQuery take() and sort() methods.
 """
 
-
-
-
 import os
 import tempfile
 import time
-from pathlib import Path
 from collections.abc import Generator
+from pathlib import Path
+
 import pytest
+
 from tpath import PQuery, TPath
+
 
 @pytest.fixture
 def test_files() -> Generator[Path, None, None]:
