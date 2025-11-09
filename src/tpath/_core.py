@@ -88,17 +88,32 @@ class TPath(Path):
     _stat_lock: threading.Lock
     _cached_stat_result: Any
 
-    def __new__(cls, *args: Any, **kwargs: Any):
-        """Create a new TPath instance."""
-        # Create the path instance - Path doesn't accept custom kwargs
-        self = super().__new__(cls, *args, **kwargs)
+    def __init__(self, *args: Any, dir_entry: Any = None, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._base_time = getattr(self, "_base_time", datetime.now())
+        self._stat_lock = getattr(self, "_stat_lock", threading.Lock())
+        if dir_entry is not None:
+            self._cached_is_file = dir_entry.is_file(follow_symlinks=False)
+            self._cached_is_dir = dir_entry.is_dir(follow_symlinks=False)
+            self._cached_is_symlink = dir_entry.is_symlink()
+        else:
+            self._cached_is_file = None
+            self._cached_is_dir = None
+            self._cached_is_symlink = None
+    def is_file(self) -> bool:
+        if self._cached_is_file is not None:
+            return self._cached_is_file
+        return super().is_file()
 
-        # Set our custom attributes with default value
-        object.__setattr__(self, "_base_time", datetime.now())
-        # Add thread-safe lock for stat caching
-        object.__setattr__(self, "_stat_lock", threading.Lock())
+    def is_dir(self) -> bool:
+        if self._cached_is_dir is not None:
+            return self._cached_is_dir
+        return super().is_dir()
 
-        return self  # Stat Caching Implementation
+    def is_symlink(self) -> bool:
+        if self._cached_is_symlink is not None:
+            return self._cached_is_symlink
+        return super().is_symlink()
 
     # ============================
     # This caching creates a consistent "snapshot" of file state for atomic decision-making.

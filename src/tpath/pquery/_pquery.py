@@ -327,19 +327,23 @@ class PQuery:
 
         def scandir_recursive(path: Path):
             try:
-                with os.scandir(path) as it:
-                    for entry in it:
+                with os.scandir(path) as dir_entries:
+                    for entry in dir_entries:
                         try:
-                            entry_path = Path(entry.path)
                             if entry.is_file(follow_symlinks=False):
-                                tpath = TPath(entry_path)
+                                tpath = TPath(entry.path, dir_entry=entry)
                                 if self._matches_query(tpath):
-                                    if not self._use_distinct or tpath not in seen_files:
+                                    if (
+                                        not self._use_distinct
+                                        or tpath not in seen_files
+                                    ):
                                         if self._use_distinct:
                                             seen_files.add(tpath)
                                         yield tpath
-                            elif self.is_recursive and entry.is_dir(follow_symlinks=False):
-                                yield from scandir_recursive(entry_path)
+                            elif self.is_recursive and entry.is_dir(
+                                follow_symlinks=False
+                            ):
+                                yield from scandir_recursive(Path(entry.path))
                         except (OSError, PermissionError):
                             if not continue_on_exc:
                                 raise
