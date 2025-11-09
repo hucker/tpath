@@ -2,6 +2,7 @@
 Test suite for PQueryStats.
 Covers initialization, path handling, file/error counting, timing, and logging.
 """
+
 import time
 from pathlib import Path
 

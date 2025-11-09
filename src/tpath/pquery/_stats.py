@@ -5,7 +5,6 @@ All timings are floats; elapsed_time is always set (0.0 if no events).
 set_paths accepts Path objects or strings.
 """
 
-
 import logging
 import time
 from dataclasses import dataclass, field
@@ -49,7 +48,11 @@ class PQueryStats:
         self.files_matched += 1
         self.end_time = time.time()
         self.elapsed_time = self.end_time - self.start_time
-        if self.logger and self.log_every_n > 0 and self.files_matched % self.log_every_n == 0:
+        if (
+            self.logger
+            and self.log_every_n > 0
+            and self.files_matched % self.log_every_n == 0
+        ):
             self.logger.info(f"matched file: {path}")
 
     def add_unmatched_file(self, path: str) -> None:

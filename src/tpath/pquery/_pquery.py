@@ -18,6 +18,9 @@ PathSequence: TypeAlias = Sequence[PathLike]
 PathInput: TypeAlias = PathLike | PathSequence
 
 
+import logging
+
+
 class PQuery:
     """
     A path query builder that provides a fluent API for file filtering.
@@ -56,12 +59,19 @@ class PQuery:
 
         return gen()
 
+    # Class-level logger (can be set globally)
+    _logger: logging.Logger | None = None
+    # Class-level log frequency
+    _log_every_n: int = 1000
+
     def __init__(
         self,
         *,
         from_: PathLike | None = None,
         recursive: bool | None = None,
         where: Callable[[TPath], bool] | None = None,
+        logger: logging.Logger | None = None,
+        log_every_n: int | None = None,
     ):
         """
         Initialize a path query with optional parameters.
@@ -78,17 +88,21 @@ class PQuery:
             PQuery(where=lambda p: p.suffix == ".py")  # Current dir, recursive, Python files
             PQuery(from_="/src", recursive=False, where=lambda p: p.size.mb > 1)  # /src, non-recursive, large files
         """
-        # Store constructor parameters for lazy evaluation
-        self._init_from: PathLike | None = from_
-        self._init_recursive: bool | None = recursive
-        self._init_where: Callable[[TPath], bool] | None = where
-
-        # Working state - will be populated when query runs
+        # Instance variables
         self.start_paths: list[TPath] = []
         self.is_recursive: bool = True
         self._query_func: list[Callable[[TPath], bool]] = []
         self._use_distinct: bool = False
         self._stats: PQueryStats = PQueryStats()
+        # Instance-level logger and log frequency
+        self._logger: logging.Logger | None = logger
+        self._log_every_n: int = (
+            log_every_n if log_every_n is not None else type(self)._log_every_n
+        )
+        # Store init parameters for later use
+        self._init_from = from_
+        self._init_recursive = recursive
+        self._init_where = where
 
     def from_(self, *, paths: PathInput) -> "PQuery":
         """
@@ -231,13 +245,8 @@ class PQuery:
 
         Args:
             recursive: Whether to search subdirectories recursively
-
-        Returns:
-            PQuery: Self for method chaining
-
-        Example:
-            PQuery().from_(paths="/logs").recursive(False).where(lambda p: p.suffix == ".log")
         """
+
         # Override both the working state and the init parameter
         self.is_recursive = recursive
         self._init_recursive = (
@@ -281,8 +290,6 @@ class PQuery:
             Multiple where() calls are combined with AND logic. All conditions must be true
             for a file to match.
         """
-        # Handle both single callable and sequence of callables
-        # Strings and bytes are technically iterable, but not valid callables for this API
         import inspect
 
         def is_query_func(f: object) -> bool:
@@ -319,8 +326,6 @@ class PQuery:
         """Check if a path matches all query conditions (AND logic)."""
         if not self._query_func:
             return True
-
-        # All conditions must be true (AND logic)
         return all(func(path) for func in self._query_func)
 
     def _iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
@@ -331,9 +336,11 @@ class PQuery:
         self._stats.set_paths(self.start_paths)
         # start_time is set by the dataclass
 
-        logger = getattr(type(self), '_logger', None)
+        logger = getattr(type(self), "_logger", None)
         if logger:
-            logger.info(f"PQuery started: paths={self._stats.paths}, recursive={self.is_recursive}")
+            logger.info(
+                f"PQuery started: paths={self._stats.paths}, recursive={self.is_recursive}"
+            )
 
         if not self.start_paths:
             default_path = self._init_from or "."
@@ -409,7 +416,9 @@ class PQuery:
                             except (OSError, PermissionError) as exc:
                                 self._stats.add_error(f"{entry.path}: {exc!r}")
                                 if logger:
-                                    logger.warning(f"Exception on {entry.path}: {exc!r}")
+                                    logger.warning(
+                                        f"Exception on {entry.path}: {exc!r}"
+                                    )
                                 if not continue_on_exc:
                                     raise
                                 continue
