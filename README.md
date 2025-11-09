@@ -249,6 +249,10 @@ old_large_logs = list(q
     .files())
 ```
 
+### Deep File System Traversal
+
+> **PQuery uses a stack-based directory walker, not recursion.** This means it can traverse extremely deep file systems without any risk of Python stack overflow. The traversal is fully iterative, so you can safely query directories with thousands of nested levels.
+
 ### Type Safety Best Practices
 
 For optimal type checking and IDE support, consider using typed functions instead of inline lambdas:
@@ -276,6 +280,8 @@ def get_file_info(path: TPath) -> dict[str, str | float]:
 large_files = PQuery().where(is_large_file).files()
 file_info = PQuery().where(is_large_file).select(get_file_info)  # Returns list[Any]
 ```
+
+> **Important:** When using `where`, you must pass the function itself (e.g., `where(is_large_file)`), not the result of calling the function (e.g., `where(is_large_file())`). Passing the result of a function call will cause a type error and is a common mistake caught by the type checker.
 
 ### Method Chaining/Fluent Interface
 
@@ -813,7 +819,7 @@ if path.age.seconds > expire_time:
 - **Config file integration**: Parse strings with Size.parse(), Age.parse(), Time.parse()
 - **Different time types**: Handle ctime, mtime, atime separately with user-friendly aliases
 - **Performance optimized**: Cached stat calls to avoid repeated filesystem operations
-- **Mathematical conventions**: Negative = past, 0 = now, positi
+- **Mathematical conventions**: Negative = past, 0 = now, positive = future
 - **Property Based Dates by [Chronos](https://github.com/hucker/chronos)**
 
 ## Development

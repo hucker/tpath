@@ -291,7 +291,11 @@ class PQuery:
             params = list(sig.parameters.values())
             # Accept only functions with one positional argument
             return len(params) == 1 and (
-                params[0].kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY)
+                params[0].kind
+                in (
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    inspect.Parameter.POSITIONAL_ONLY,
+                )
             )
 
         if isinstance(condition, Iterable) and not isinstance(condition, str | bytes):
@@ -369,11 +373,16 @@ class PQuery:
                                 if entry.is_file(follow_symlinks=False):
                                     tpath = TPath(entry.path, dir_entry=entry)
                                     if self._matches_query(tpath):
-                                        if not self._use_distinct or tpath not in seen_files:
+                                        if (
+                                            not self._use_distinct
+                                            or tpath not in seen_files
+                                        ):
                                             if self._use_distinct:
                                                 seen_files.add(tpath)
                                             yield tpath
-                                elif self.is_recursive and entry.is_dir(follow_symlinks=False):
+                                elif self.is_recursive and entry.is_dir(
+                                    follow_symlinks=False
+                                ):
                                     dirs.append(Path(entry.path))
                             except (OSError, PermissionError):
                                 if not continue_on_exc:
