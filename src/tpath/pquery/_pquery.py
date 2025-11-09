@@ -281,15 +281,28 @@ class PQuery:
         """
         # Handle both single callable and sequence of callables
         # Strings and bytes are technically iterable, but not valid callables for this API
+        import inspect
+
+        def is_query_func(f: object) -> bool:
+            # Accept only Callable[[TPath], bool] (runtime check: one positional arg)
+            if not callable(f):
+                return False
+            sig = inspect.signature(f)
+            params = list(sig.parameters.values())
+            # Accept only functions with one positional argument
+            return len(params) == 1 and (
+                params[0].kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.POSITIONAL_ONLY)
+            )
+
         if isinstance(condition, Iterable) and not isinstance(condition, str | bytes):
             for func in condition:
-                if not callable(func):
+                if not is_query_func(func):
                     raise TypeError(
-                        f"All items in condition sequence must be callable, got {type(func)}"
+                        f"All items in condition sequence must be callable with one positional arg, got {type(func)}"
                     )
-                self._query_func.append(func)
-        elif callable(condition):
-            self._query_func.append(condition)
+                self._query_func.append(func)  # type: ignore[arg-type]
+        elif is_query_func(condition):
+            self._query_func.append(condition)  # type: ignore[arg-type]
         else:
             raise TypeError(
                 f"where() expects a callable or iterable of callables, got {type(condition)}"
@@ -325,38 +338,12 @@ class PQuery:
 
         seen_files: set[TPath] = set() if self._use_distinct else set()
 
-        def scandir_recursive(path: Path):
-            try:
-                with os.scandir(path) as dir_entries:
-                    for entry in dir_entries:
-                        try:
-                            if entry.is_file(follow_symlinks=False):
-                                tpath = TPath(entry.path, dir_entry=entry)
-                                if self._matches_query(tpath):
-                                    if (
-                                        not self._use_distinct
-                                        or tpath not in seen_files
-                                    ):
-                                        if self._use_distinct:
-                                            seen_files.add(tpath)
-                                        yield tpath
-                            elif self.is_recursive and entry.is_dir(
-                                follow_symlinks=False
-                            ):
-                                yield from scandir_recursive(Path(entry.path))
-                        except (OSError, PermissionError):
-                            if not continue_on_exc:
-                                raise
-                            continue
-            except (OSError, PermissionError):
-                if not continue_on_exc:
-                    raise
-                return
-
+        # Stack-based traversal: process files first, push dirs onto stack
         for start_path in self.start_paths:
             if not start_path.exists():
                 continue
 
+            # If start_path is a file, yield it directly
             if not start_path.is_dir():
                 try:
                     if self._matches_query(start_path):
@@ -370,7 +357,34 @@ class PQuery:
                     continue
                 continue
 
-            yield from scandir_recursive(Path(str(start_path)))
+            # Stack for directories to process
+            stack = [Path(str(start_path))]
+            while stack:
+                current_dir = stack.pop()
+                try:
+                    with os.scandir(current_dir) as dir_entries:
+                        dirs = []
+                        for entry in dir_entries:
+                            try:
+                                if entry.is_file(follow_symlinks=False):
+                                    tpath = TPath(entry.path, dir_entry=entry)
+                                    if self._matches_query(tpath):
+                                        if not self._use_distinct or tpath not in seen_files:
+                                            if self._use_distinct:
+                                                seen_files.add(tpath)
+                                            yield tpath
+                                elif self.is_recursive and entry.is_dir(follow_symlinks=False):
+                                    dirs.append(Path(entry.path))
+                            except (OSError, PermissionError):
+                                if not continue_on_exc:
+                                    raise
+                                continue
+                        # Push directories onto stack after yielding files
+                        stack.extend(dirs)
+                except (OSError, PermissionError):
+                    if not continue_on_exc:
+                        raise
+                    continue
 
     def files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """
