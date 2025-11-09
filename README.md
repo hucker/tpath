@@ -112,7 +112,7 @@ print(f"Found {len(backup_candidates)} backup candidates")
 
 ## Installation
 
-**NOT ALIVE ON PYPI YET**
+THis project is **NOT ALIVE ON PYPI YET** at this time.
 
 ### Using uv (Recommended)
 
@@ -442,6 +442,7 @@ file_names = list(PQuery().from_("./logs").select(lambda p: p.name))
 ```
 
 **When to use each approach:**
+
 - **Streaming**: Large datasets, one-time processing, memory constrained
 - **Lists**: Need length/indexing, multiple iterations, small datasets
 
