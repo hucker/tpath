@@ -844,6 +844,36 @@ uv run ruff format
 uv run ruff check
 ```
 
+## Logging Support
+
+
+PQuery supports flexible logging for query operations and statistics. You can attach a standard Python logger to track progress, errors, and matched files during queries.
+
+**How to enable logging:**
+- Pass a `logging.Logger` instance to the `PQuery` constructor or use the class method `PQuery.set_logger()` to set a logger for all queries.
+- Log messages include query start, progress (every N files), errors, and completion.
+
+**Example: Setting a class-level logger**
+```python
+import logging
+from src.tpath.pquery import PQuery
+
+logger = logging.getLogger("pquery_global")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+logger.addHandler(handler)
+
+PQuery.set_logger(logger)  # Set class-level logger for all queries
+
+query = PQuery(from_="/logs")
+for file in query.files():
+    process(file)
+```
+
+You can also pass a logger to an individual query if you want per-instance logging.
+
+See tests in `test/pquery/test_logger.py` for more usage patterns.
+
 ## License
 
 MIT License - see LICENSE file for details.
