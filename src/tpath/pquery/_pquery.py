@@ -305,8 +305,10 @@ class PQuery:
         return all(func(path) for func in self._query_func)
 
     def _iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
-        """Internal method to iterate over all matching files."""
-        # Apply defaults using null coalescing
+        """Internal method to iterate over all matching files using os.scandir."""
+        import os
+        from pathlib import Path
+
         if not self.start_paths:
             default_path = self._init_from or "."
             self.start_paths = [TPath(default_path)]
@@ -316,14 +318,36 @@ class PQuery:
         )
 
         if not self._query_func:
-            # Initialize with default or constructor-provided where clause
             if self._init_where is not None:
                 self._query_func = [self._init_where]
             else:
                 self._query_func = [lambda p: p.is_file()]
 
-        # Set for tracking seen files if distinct is enabled
         seen_files: set[TPath] = set() if self._use_distinct else set()
+
+        def scandir_recursive(path: Path):
+            try:
+                with os.scandir(path) as it:
+                    for entry in it:
+                        try:
+                            entry_path = Path(entry.path)
+                            if entry.is_file(follow_symlinks=False):
+                                tpath = TPath(entry_path)
+                                if self._matches_query(tpath):
+                                    if not self._use_distinct or tpath not in seen_files:
+                                        if self._use_distinct:
+                                            seen_files.add(tpath)
+                                        yield tpath
+                            elif self.is_recursive and entry.is_dir(follow_symlinks=False):
+                                yield from scandir_recursive(entry_path)
+                        except (OSError, PermissionError):
+                            if not continue_on_exc:
+                                raise
+                            continue
+            except (OSError, PermissionError):
+                if not continue_on_exc:
+                    raise
+                return
 
         for start_path in self.start_paths:
             if not start_path.exists():
@@ -342,25 +366,7 @@ class PQuery:
                     continue
                 continue
 
-            try:
-                glob_method = start_path.rglob if self.is_recursive else start_path.glob
-                for path in glob_method("*"):
-                    if path.is_file():  # Only yield files, not directories
-                        tpath = TPath(path)
-                        try:
-                            if self._matches_query(tpath):
-                                if not self._use_distinct or tpath not in seen_files:
-                                    if self._use_distinct:
-                                        seen_files.add(tpath)
-                                    yield tpath
-                        except (OSError, PermissionError):
-                            if not continue_on_exc:
-                                raise
-                            continue
-            except (OSError, PermissionError):
-                if not continue_on_exc:
-                    raise
-                continue
+            yield from scandir_recursive(Path(str(start_path)))
 
     def files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """
