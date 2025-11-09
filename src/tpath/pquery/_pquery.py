@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 from .._core import TPath
+from ._stats import PQueryStats
 
 # Type aliases for better readability and IDE support
 PathLike: TypeAlias = str | Path | TPath
@@ -87,6 +88,7 @@ class PQuery:
         self.is_recursive: bool = True
         self._query_func: list[Callable[[TPath], bool]] = []
         self._use_distinct: bool = False
+        self._stats: PQueryStats = PQueryStats()
 
     def from_(self, *, paths: PathInput) -> "PQuery":
         """
@@ -322,9 +324,16 @@ class PQuery:
         return all(func(path) for func in self._query_func)
 
     def _iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
-        """Internal method to iterate over all matching files using os.scandir."""
+        """Internal method to iterate over all matching files using os.scandir, with live stats tracking."""
         import os
         from pathlib import Path
+
+        self._stats.set_paths(self.start_paths)
+        # start_time is set by the dataclass
+
+        logger = getattr(type(self), '_logger', None)
+        if logger:
+            logger.info(f"PQuery started: paths={self._stats.paths}, recursive={self.is_recursive}")
 
         if not self.start_paths:
             default_path = self._init_from or "."
@@ -354,8 +363,16 @@ class PQuery:
                         if not self._use_distinct or start_path not in seen_files:
                             if self._use_distinct:
                                 seen_files.add(start_path)
+                            self._stats.add_matched_file(str(start_path))
                             yield start_path
-                except (OSError, PermissionError):
+                    else:
+                        self._stats.add_unmatched_file(str(start_path))
+                    if logger and self._stats.files_scanned % 1000 == 0:
+                        logger.info(f"Progress: {self._stats.log_msg()}")
+                except (OSError, PermissionError) as exc:
+                    self._stats.add_error(f"{start_path}: {exc!r}")
+                    if logger:
+                        logger.warning(f"Exception on {start_path}: {exc!r}")
                     if not continue_on_exc:
                         raise
                     continue
@@ -379,21 +396,35 @@ class PQuery:
                                         ):
                                             if self._use_distinct:
                                                 seen_files.add(tpath)
+                                            self._stats.add_matched_file(entry.path)
                                             yield tpath
+                                    else:
+                                        self._stats.add_unmatched_file(entry.path)
+                                if logger and self._stats.files_scanned % 1000 == 0:
+                                    logger.info(f"Progress: {self._stats.log_msg()}")
                                 elif self.is_recursive and entry.is_dir(
                                     follow_symlinks=False
                                 ):
                                     dirs.append(Path(entry.path))
-                            except (OSError, PermissionError):
+                            except (OSError, PermissionError) as exc:
+                                self._stats.add_error(f"{entry.path}: {exc!r}")
+                                if logger:
+                                    logger.warning(f"Exception on {entry.path}: {exc!r}")
                                 if not continue_on_exc:
                                     raise
                                 continue
                         # Push directories onto stack after yielding files
                         stack.extend(dirs)
-                except (OSError, PermissionError):
+                except (OSError, PermissionError) as exc:
+                    self._stats.add_error(f"{current_dir}: {exc!r}")
+                    if logger:
+                        logger.warning(f"Exception on {current_dir}: {exc!r}")
                     if not continue_on_exc:
                         raise
                     continue
+        # Final log at completion
+        if logger:
+            logger.info(f"PQuery completed: {self._stats.log_msg()}")
 
     def files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """
