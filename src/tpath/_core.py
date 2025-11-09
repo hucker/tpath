@@ -100,6 +100,7 @@ class TPath(Path):
             self._cached_is_file = None
             self._cached_is_dir = None
             self._cached_is_symlink = None
+
     def is_file(self) -> bool:
         if self._cached_is_file is not None:
             return self._cached_is_file
