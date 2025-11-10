@@ -333,7 +333,11 @@ class PQuery:
         import os
         from pathlib import Path
 
-        self._stats.set_paths(self.start_paths)
+        # Convert TPath objects to string paths for stats
+        if self.start_paths and isinstance(self.start_paths[0], TPath):
+            self._stats.set_paths([str(p) for p in self.start_paths])
+        else:
+            self._stats.set_paths(self.start_paths)
         # start_time is set by the dataclass
 
         logger = getattr(type(self), "_logger", None)
@@ -456,9 +460,11 @@ class PQuery:
                 try:
                     yield path
                 except Exception as exc:
-                    print(
-                        f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}"
-                    )
+                    logger = self._logger or type(self)._logger
+                    if logger:
+                        logger.error(
+                            f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}"
+                        )
                     if not continue_on_exc:
                         raise
 
