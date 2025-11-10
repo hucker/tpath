@@ -40,6 +40,9 @@ class PQuery:
         """
         Execute the query and return selected fields from matching files as an iterator.
 
+        This terminal method executes the configured query and returns an iterator
+        over the selected field values. After calling select(), the fluent chain ends.
+
         Args:
             field: Lambda function that takes a TPath and returns any value
 
@@ -114,13 +117,15 @@ class PQuery:
         """
         Set or add starting directory paths.
 
+        This builder method configures the starting paths for the query.
+
         Args:
             paths: One or more starting directory paths, or sequences of paths.
                    Each argument can be a single path (str, Path, TPath) or a
                    sequence of paths (list, tuple, etc.)
 
         Returns:
-            PQuery: Self for method chaining
+            PQuery: This PQuery instance for method chaining
 
         Examples:
             PQuery().from_(paths="/logs").where(lambda p: p.size.gb < 1)
@@ -177,6 +182,9 @@ class PQuery:
         """
         Take the top limit files, optionally ordered by a key function.
 
+        This terminal method executes the configured query and returns up to limit
+        files, optionally sorted by a key function. The fluent chain ends here.
+
         This method is optimized for getting the "best" limit files without sorting all results.
         Uses heapq.nlargest/nsmallest for O(n log k) performance when key is provided.
 
@@ -186,6 +194,7 @@ class PQuery:
                 Can return a single value or tuple for multi-column sorting
             reverse: If True (default), return largest/newest items
                     If False, return smallest/oldest items
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
 
         Returns:
             list[TPath]: Up to limit files matching the criteria
@@ -229,13 +238,11 @@ class PQuery:
         """
         Enable deduplication of results at the generator level.
 
-        This method sets up state for deduplication during file iteration.
+        This builder method sets up state for deduplication during file iteration.
         The actual duplicate removal occurs when files are yielded from the iterator.
-        Particularly useful when searching multiple overlapping directories or when
-        symbolic links might create duplicate references.
 
         Returns:
-            PQuery: Self for method chaining
+            PQuery: This PQuery instance for method chaining
 
         Example:
             query = pquery(from_="./src").where(lambda p: p.suffix == ".py").distinct().take(10)
@@ -256,10 +263,19 @@ class PQuery:
 
     def recursive(self, recursive: bool = True) -> "PQuery":
         """
-        Set whether to search subdirectories recursively.
+        Enable recursive traversal of directories.
+
+        This builder method configures the query to traverse subdirectories
+        when searching for files, rather than only searching the immediate directory.
 
         Args:
             recursive: Whether to search subdirectories recursively
+
+        Returns:
+            PQuery: This PQuery instance for method chaining
+
+        Example:
+            query = pquery(from_="./src").recursive().where(lambda p: p.suffix == ".py")
         """
 
         # Override both the working state and the init parameter
@@ -275,15 +291,15 @@ class PQuery:
         """
         Add a query condition using a lambda expression.
 
-        Multiple where() calls are combined with AND logic. You can also pass multiple
-        conditions in a single call using a list/tuple of lambdas.
+        This builder method adds filtering conditions to the query.
+        Multiple where() calls are combined with AND logic.
 
         Args:
             condition: Lambda function that takes a TPath and returns bool, or a sequence
                    of such functions (list, tuple, etc.)
 
         Returns:
-            PQuery: Self for method chaining
+            PQuery: This PQuery instance for method chaining
 
         Examples:
             # Multiple separate where() calls
@@ -451,6 +467,12 @@ class PQuery:
         """
         Execute the query and return matching files as an iterator.
 
+        This terminal method executes the configured query and returns an iterator
+        over the matching files. The fluent chain ends here.
+
+        Args:
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
+
         Returns:
             Iterator[TPath]: Iterator of matching file paths
 
@@ -482,6 +504,12 @@ class PQuery:
         """
         Return the first matching file or None if no matches.
 
+        This terminal method executes the configured query and returns the first
+        matching file, or None if no files match. The fluent chain ends here.
+
+        Args:
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
+
         Returns:
             TPath | None: First matching file or None
 
@@ -498,6 +526,9 @@ class PQuery:
         """
         Check if any files match the query.
 
+        This terminal method executes the configured query and returns True if
+        at least one file matches, False otherwise. The fluent chain ends here.
+
         Returns:
             bool: True if at least one matching file exists
 
@@ -513,6 +544,12 @@ class PQuery:
     def count(self, continue_on_exc: bool = True) -> int:
         """
         Count the number of matching files.
+
+        This terminal method executes the configured query and returns the total
+        count of matching files. The fluent chain ends here.
+
+        Args:
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
 
         Returns:
             int: Number of matching files
@@ -531,6 +568,9 @@ class PQuery:
         """
         Sort all matching files by a key function.
 
+        This terminal method executes the configured query, collects all matching
+        files, and returns them sorted. The fluent chain ends here.
+
         This method performs a full sort of all results. Use take() if you only need
         the top/bottom n files for better performance.
 
@@ -539,6 +579,7 @@ class PQuery:
                 Can return a single value or tuple for multi-column sorting
             reverse: If False (default), sort in ascending order
                     If True, sort in descending order
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
 
         Returns:
             list[TPath]: All matching files sorted by the key
@@ -576,11 +617,15 @@ class PQuery:
         """
         Return an iterator that yields pages of files.
 
+        This terminal method executes the configured query and returns an iterator
+        that yields pages of matching files. The fluent chain ends here.
+
         This is the most efficient way to process large result sets in chunks,
         as it maintains a single iterator and processes each file exactly once.
 
         Args:
             page_size: Number of files per page (default: 10)
+            continue_on_exc: If True, continue processing on exceptions. If False, raise.
 
         Yields:
             list[TPath]: Pages of files, each containing up to page_size items
@@ -611,7 +656,15 @@ class PQuery:
             yield page
 
     def __iter__(self) -> Iterator[TPath]:
-        """Allow iteration over the query results."""
+        """
+        Allow iteration over the query results.
+
+        This terminal method executes the configured query and returns an iterator
+        over the matching files. The fluent chain ends here.
+
+        Returns:
+            Iterator[TPath]: Iterator of matching file paths
+        """
         return self._distinct_iter_files()
 
 
