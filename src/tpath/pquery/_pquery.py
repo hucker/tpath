@@ -4,6 +4,7 @@ Path querying functionality for TPath objects.
 Provides a pathql-inspired API for querying files with lambda expressions.
 """
 
+import logging
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from pathlib import Path
 from typing import Any, TypeAlias
@@ -18,7 +19,12 @@ PathSequence: TypeAlias = Sequence[PathLike]
 PathInput: TypeAlias = PathLike | PathSequence
 
 
-import logging
+def distinct_paths(paths: Iterable["TPath"]) -> Iterator["TPath"]:
+    seen = set()
+    for path in paths:
+        if path not in seen:
+            seen.add(path)
+            yield path
 
 
 class PQuery:
@@ -50,7 +56,7 @@ class PQuery:
         """
 
         def gen():
-            for path in self._iter_files():
+            for path in self._distinct_iter_files():
                 try:
                     yield field(path)
                 except Exception:
@@ -92,7 +98,7 @@ class PQuery:
         self.start_paths: list[TPath] = []
         self.is_recursive: bool = True
         self._query_func: list[Callable[[TPath], bool]] = []
-        self._use_distinct: bool = False
+        self._distinct: bool = False
         self._stats: PQueryStats = PQueryStats()
         # Instance-level logger and log frequency
         self._logger: logging.Logger | None = logger
@@ -200,7 +206,7 @@ class PQuery:
         import heapq  # noqa: F401 # Lazy import for performance optimization
 
         def safe_iter():
-            for path in self._iter_files():
+            for path in self._distinct_iter_files():
                 try:
                     yield path
                 except Exception:
@@ -223,7 +229,8 @@ class PQuery:
         """
         Enable deduplication of results at the generator level.
 
-        This method enables efficient duplicate removal by tracking seen files in a set.
+        This method sets up state for deduplication during file iteration.
+        The actual duplicate removal occurs when files are yielded from the iterator.
         Particularly useful when searching multiple overlapping directories or when
         symbolic links might create duplicate references.
 
@@ -235,9 +242,17 @@ class PQuery:
 
         Performance Notes:
             - Uses O(k) memory where k = number of unique files processed
+            - Deduplication happens lazily during iteration, not upfront
         """
-        self._use_distinct = True
+        self._distinct = True
         return self
+
+    def _distinct_iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
+        """Internal method that wraps _iter_files with deduplication if distinct is enabled."""
+        base_iter = self._iter_files(continue_on_exc=continue_on_exc)
+        if self._distinct:
+            return distinct_paths(base_iter)
+        return base_iter
 
     def recursive(self, recursive: bool = True) -> "PQuery":
         """
@@ -334,10 +349,7 @@ class PQuery:
         from pathlib import Path
 
         # Convert TPath objects to string paths for stats
-        if self.start_paths and isinstance(self.start_paths[0], TPath):
-            self._stats.set_paths([str(p) for p in self.start_paths])
-        else:
-            self._stats.set_paths(self.start_paths)
+        self._stats.set_paths([str(p) for p in self.start_paths])
         # start_time is set by the dataclass
 
         logger = getattr(type(self), "_logger", None)
@@ -360,8 +372,6 @@ class PQuery:
             else:
                 self._query_func = [lambda p: p.is_file()]
 
-        seen_files: set[TPath] = set() if self._use_distinct else set()
-
         # Stack-based traversal: process files first, push dirs onto stack
         for start_path in self.start_paths:
             if not start_path.exists():
@@ -370,23 +380,23 @@ class PQuery:
             # If start_path is a file, yield it directly
             if not start_path.is_dir():
                 try:
-                    if self._matches_query(start_path):
-                        if not self._use_distinct or start_path not in seen_files:
-                            if self._use_distinct:
-                                seen_files.add(start_path)
-                            self._stats.add_matched_file(str(start_path))
-                            yield start_path
+                    matched = self._matches_query(start_path)
+                    if matched:
+                        self._stats.add_matched_file(str(start_path))
+                        yield start_path
                     else:
                         self._stats.add_unmatched_file(str(start_path))
+
+                    # Log progress after processing the file
                     if logger and self._stats.files_scanned % 1000 == 0:
                         logger.info(f"Progress: {self._stats.log_msg()}")
                 except (OSError, PermissionError) as exc:
                     self._stats.add_error(f"{start_path}: {exc!r}")
+                    logger = getattr(type(self), "_logger", None)
                     if logger:
                         logger.warning(f"Exception on {start_path}: {exc!r}")
                     if not continue_on_exc:
                         raise
-                    continue
                 continue
 
             # Stack for directories to process
@@ -395,25 +405,23 @@ class PQuery:
                 current_dir = stack.pop()
                 try:
                     with os.scandir(current_dir) as dir_entries:
-                        dirs = []
+                        dirs: list[Path] = []
                         for entry in dir_entries:
                             try:
                                 if entry.is_file(follow_symlinks=False):
                                     tpath = TPath(entry.path, dir_entry=entry)
                                     if self._matches_query(tpath):
-                                        if (
-                                            not self._use_distinct
-                                            or tpath not in seen_files
-                                        ):
-                                            if self._use_distinct:
-                                                seen_files.add(tpath)
-                                            self._stats.add_matched_file(entry.path)
-                                            yield tpath
+                                        self._stats.add_matched_file(entry.path)
+                                        yield tpath
                                     else:
                                         self._stats.add_unmatched_file(entry.path)
+
+                                # Check logging after processing each entry (file or dir)
                                 if logger and self._stats.files_scanned % 1000 == 0:
                                     logger.info(f"Progress: {self._stats.log_msg()}")
-                                elif self.is_recursive and entry.is_dir(
+
+                                # Add directories to stack if recursive
+                                if self.is_recursive and entry.is_dir(
                                     follow_symlinks=False
                                 ):
                                     dirs.append(Path(entry.path))
@@ -456,7 +464,7 @@ class PQuery:
         """
 
         def gen():
-            for path in self._iter_files():
+            for path in self._distinct_iter_files(continue_on_exc=continue_on_exc):
                 try:
                     yield path
                 except Exception as exc:
@@ -497,7 +505,7 @@ class PQuery:
             has_large_files = pquery(from_="./data").where(lambda p: p.size.gb > 1).exists()
         """
         try:
-            next(self._iter_files())
+            next(self._distinct_iter_files())
             return True
         except StopIteration:
             return False
@@ -550,7 +558,7 @@ class PQuery:
         """
 
         def safe_iter():
-            for path in self._iter_files():
+            for path in self._distinct_iter_files():
                 try:
                     yield path
                 except Exception:
@@ -604,7 +612,7 @@ class PQuery:
 
     def __iter__(self) -> Iterator[TPath]:
         """Allow iteration over the query results."""
-        return self._iter_files()
+        return self._distinct_iter_files()
 
 
 def pquery(
