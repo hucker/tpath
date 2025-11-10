@@ -1,13 +1,41 @@
-"""
-Path querying functionality for TPath objects.
+"""tpath.pquery — path querying helpers for TPath objects.
 
-Provides a pathql-inspired API for querying files with lambda expressions.
+This module provides a lightweight, SQL-like fluent query builder for
+filesystem traversal and filtering of :class:`~tpath._core.TPath` objects.
+
+Primary public API:
+    - :class:`PQuery` - fluent builder with methods such as ``from_``,
+        ``where``, ``distinct``, ``take``, ``order_by``, ``paginate``, ``files``,
+        ``select``, and ``map_parallel``.
+    - :func:`pquery` - convenience constructor returning a :class:`PQuery`.
+    - :class:`MapResult` - dataclass returned by :meth:`PQuery.map_parallel`.
+
+The :meth:`PQuery.map_parallel` method runs a single producer (crawler)
+thread and one or more consumer worker threads and yields :class:`MapResult`
+records for each processed file. For details and behavior (exception
+policies, shutdown semantics, and example usage) see that method's docstring.
+
+Example:
+
+        from tpath.pquery import pquery
+
+        # Stream file names in parallel (4 workers)
+        for res in pquery(from_="src").where(lambda p: p.suffix == ".py").map_parallel(lambda p: p.name, workers=4):
+                if res.success:
+                        print(res.data)
+
 """
+
+from __future__ import annotations
 
 import logging
+import queue
+import threading
+import time
 from collections.abc import Callable, Iterable, Iterator, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
 from .._core import TPath
 from ._stats import PQueryStats
@@ -19,12 +47,31 @@ PathSequence: TypeAlias = Sequence[PathLike]
 PathInput: TypeAlias = PathLike | PathSequence
 
 
-def distinct_paths(paths: Iterable["TPath"]) -> Iterator["TPath"]:
-    seen = set()
+def distinct_paths(paths: Iterable[TPath]) -> Iterator[TPath]:
+    seen: set[TPath] = set()
     for path in paths:
         if path not in seen:
             seen.add(path)
             yield path
+
+
+@dataclass
+class MapResult:
+    """Result record returned by PQuery.map_parallel for each processed file.
+
+    Attributes:
+        path: The TPath that was processed
+        execution_time: Seconds spent executing the mapping function
+        success: True when func completed without raising
+        exception: The exception instance if the call failed, otherwise None
+        data: The value returned by func when success is True, otherwise None
+    """
+
+    path: TPath
+    execution_time: float
+    success: bool
+    exception: Exception | None = None
+    data: Any | None = None
 
 
 class PQuery:
@@ -113,7 +160,7 @@ class PQuery:
         self._init_recursive = recursive
         self._init_where = where
 
-    def from_(self, *, paths: PathInput) -> "PQuery":
+    def from_(self, *, paths: PathInput) -> PQuery:
         """
         Set or add starting directory paths.
 
@@ -234,7 +281,7 @@ class PQuery:
         else:
             return heapq.nsmallest(limit, safe_iter(), key=key)
 
-    def distinct(self) -> "PQuery":
+    def distinct(self) -> PQuery:
         """
         Enable deduplication of results at the generator level.
 
@@ -261,7 +308,7 @@ class PQuery:
             return distinct_paths(base_iter)
         return base_iter
 
-    def recursive(self, recursive: bool = True) -> "PQuery":
+    def recursive(self, recursive: bool = True) -> PQuery:
         """
         Enable recursive traversal of directories.
 
@@ -287,7 +334,7 @@ class PQuery:
 
     def where(
         self, condition: Callable[[TPath], bool] | Iterable[Callable[[TPath], bool]]
-    ) -> "PQuery":
+    ) -> PQuery:
         """
         Add a query condition using a lambda expression.
 
@@ -340,13 +387,17 @@ class PQuery:
 
         if isinstance(condition, Iterable) and not isinstance(condition, str | bytes):
             for func in condition:
-                if not is_query_func(func):
+                if not callable(func):  # type: ignore[arg-type]
                     raise TypeError(
                         f"All items in condition sequence must be callable with one positional arg, got {type(func)}"
-                    )
-                self._query_func.append(func)  # type: ignore[arg-type]
+                    )  # type: ignore[arg-type]
+                if not is_query_func(func):  # type: ignore[arg-type]
+                    raise TypeError(
+                        f"All items in condition sequence must be callable with one positional arg, got {type(func)}"
+                    )  # type: ignore[arg-type]
+                self._query_func.append(cast(Callable[[TPath], bool], func))
         elif is_query_func(condition):
-            self._query_func.append(condition)  # type: ignore[arg-type]
+            self._query_func.append(cast(Callable[[TPath], bool], condition))
         else:
             raise TypeError(
                 f"where() expects a callable or iterable of callables, got {type(condition)}"
@@ -657,6 +708,197 @@ class PQuery:
             if not page:
                 break
             yield page
+
+    def map_parallel(
+        self,
+        func: Callable[[TPath], Any],
+        *,
+        workers: int = 1,
+        exception_policy: str = "continue",
+        timeout: float | None = None,
+    ) -> Iterator[MapResult]:
+        """
+        Map `func` across matching files using a producer (crawler) + consumer workers.
+
+        This terminal method streams MapResult objects as files are processed. The
+        query traversal (producer) runs in a background thread and pushes TPath
+        objects onto a bounded queue; `workers` consumer threads run the user
+        provided `func` on each TPath and push MapResult objects onto a result
+        queue which is consumed by the returned iterator.
+
+        Defaults are simple: one crawler (producer) + one worker. Increase
+        `workers` to parallelize IO/CPU-bound mapping as appropriate. Note that
+        for CPU-bound heavy functions you may prefer a multiprocessing approach
+        (not implemented here) due to the GIL.
+
+        Args:
+            func: Callable accepting a single TPath and returning any value
+            workers: Number of consumer worker threads (default: 1)
+            exception_policy: How to react when func raises on an item.
+                - 'continue' (default): emit MapResult with success=False and continue
+                - 'collect': same as 'continue' (keeps exceptions for caller to inspect)
+                - 'exit': emit MapResult for the failure then try to stop all processing
+            timeout: Optional timeout (seconds) applied to internal queue.get when
+                waiting for results; None means block until results are available.
+
+        Yields:
+            MapResult objects in roughly the order they complete.
+        """
+
+        # local imports removed; threading and time are module-level imports
+
+        if workers < 1:
+            raise ValueError("workers must be >= 1")
+
+        if exception_policy not in ("continue", "collect", "exit"):
+            raise ValueError(
+                "exception_policy must be one of 'continue', 'collect', 'exit'"
+            )
+
+        work_q: queue.Queue[object] = queue.Queue(maxsize=max(32, workers * 4))
+        result_q: queue.Queue[object] = queue.Queue()
+        sentinel = object()
+        stop_event = threading.Event()
+
+        def producer():
+            """Producer thread.
+
+            Crawls files using self._distinct_iter_files() and enqueues TPath objects
+            onto the work_q. Respects `stop_event` so an 'exit' can stop the run.
+            Uses a bounded put with timeout so the producer remains responsive and
+            places sentinel objects when finished to signal worker shutdown.
+            """
+            try:
+                for path in self._distinct_iter_files():
+                    # If an 'exit' was requested, stop producing
+                    if stop_event.is_set():
+                        break
+                    # Avoid blocking forever so we can respond to stop_event
+                    while True:
+                        try:
+                            work_q.put(path, timeout=0.5)
+                            break
+                        except queue.Full:
+                            if stop_event.is_set():
+                                return
+                            continue
+            finally:
+                # Signal workers we are done
+                for _ in range(workers):
+                    # If workers are blocked on get, this will allow them to exit
+                    try:
+                        work_q.put(sentinel)
+                    except Exception:
+                        pass
+
+        def worker():
+            """Worker thread.
+
+            Consumes items from `work_q`, runs the user-provided `func` on each
+            TPath, and places MapResult objects onto `result_q`. On exception the
+            result contains success=False and the exception. If
+            `exception_policy=='exit'` the worker sets `stop_event` to notify
+            others and attempts to stop processing.
+            When the worker exits it pushes a sentinel into `result_q` to
+            indicate completion.
+            """
+            while not stop_event.is_set():
+                try:
+                    item: object = work_q.get()
+                except Exception:
+                    break
+                if item is sentinel:
+                    # Put sentinel back for other workers and exit
+                    try:
+                        work_q.put(sentinel)
+                    except Exception:
+                        pass
+                    break
+                start = time.perf_counter()
+                try:
+                    tp = cast(TPath, item)
+                    data = func(tp)
+                    elapsed = time.perf_counter() - start
+                    result_q.put(
+                        MapResult(
+                            path=tp,
+                            execution_time=elapsed,
+                            success=True,
+                            exception=None,
+                            data=data,
+                        )
+                    )
+                except Exception as exc:  # noqa: BLE001 - we want to capture any exception
+                    elapsed = time.perf_counter() - start
+                    result_q.put(
+                        MapResult(
+                            path=cast(TPath, item),
+                            execution_time=elapsed,
+                            success=False,
+                            exception=exc,
+                            data=None,
+                        )
+                    )
+                    if exception_policy == "exit":
+                        # Signal other threads to stop and stop producing
+                        stop_event.set()
+                        break
+                finally:
+                    try:
+                        work_q.task_done()
+                    except Exception:
+                        pass
+            # Worker exiting — signal completion to the result iterator
+            result_q.put(sentinel)
+
+        # Start threads
+        prod_thread = threading.Thread(
+            target=producer, name="pquery-producer", daemon=True
+        )
+        worker_threads = [
+            threading.Thread(target=worker, name=f"pquery-worker-{i}", daemon=True)
+            for i in range(workers)
+        ]
+        prod_thread.start()
+        for t in worker_threads:
+            t.start()
+
+        # Result iterator: yield MapResult objects until all workers have signalled completion
+        finished_workers = 0
+        try:
+            while True:
+                try:
+                    obj: object = (
+                        result_q.get(timeout=timeout)
+                        if timeout is not None
+                        else result_q.get()
+                    )
+                except queue.Empty:
+                    # Timeout waiting for results
+                    if stop_event.is_set():
+                        break
+                    continue
+                if obj is sentinel:
+                    finished_workers += 1
+                    if finished_workers >= workers:
+                        break
+                    else:
+                        continue
+                # obj is a MapResult
+                res = cast(MapResult, obj)
+                yield res
+        finally:
+            # Ensure threads are asked to stop and joined
+            stop_event.set()
+            try:
+                prod_thread.join(timeout=1.0)
+            except Exception:
+                pass
+            for t in worker_threads:
+                try:
+                    t.join(timeout=1.0)
+                except Exception:
+                    pass
 
     def __iter__(self) -> Iterator[TPath]:
         """

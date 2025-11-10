@@ -108,7 +108,7 @@ backup_candidates = list(
 print(f"Found {len(backup_candidates)} backup candidates")
 ```
 
-**No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.**
+No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.
 
 ## Installation
 
@@ -354,7 +354,7 @@ has_large_files = (PQuery()
     .exists()
 )
 
-# Count matching files
+# Count matching files (must crawl all files)
 num_python_files = (PQuery()
     .from_("./src")
     .where(lambda p: p.suffix == '.py')
@@ -400,7 +400,53 @@ query = PQuery().from_("./documents").where(lambda p: p.suffix == '.pdf')
 pages = list(query.paginate(20))  # Get all pages
 first_page = pages[0] if pages else []
 
-# Manual page iteration
+
+### Parallel mapping (map_parallel)
+
+For higher-throughput file processing you can use the PQuery.map_parallel
+terminal method. It runs a single producer (crawler) thread that walks the
+filesystem and one or more consumer worker threads that call your mapping
+function on each :class:`~tpath._core.TPath`.
+
+Key points:
+- The method yields :class:`MapResult` objects for each processed file. A
+    MapResult contains: ``path`` (the TPath), ``execution_time`` (seconds),
+    ``success`` (bool), ``exception`` (Exception or ``None``), and ``data`` (the
+    function return value when success is True).
+- Default design is one crawler + one worker. Increase ``workers`` to run more
+    workers in parallel (useful for IO-bound mapping functions).
+- ``exception_policy`` controls behavior on failure:
+    - ``'continue'`` or ``'collect'``: emit a MapResult with ``success=False``
+        and continue processing other files.
+    - ``'exit'``: emit the failure result, then attempt to stop the producer
+        and other workers as soon as possible.
+- Use ``take()`` or ``paginate()`` when you only need partial results; the
+    crawler still respects those terminal operations.
+
+Example (inspect results):
+
+```python
+from tpath import pquery
+
+# Map file -> file name using 4 workers
+for res in pquery(from_="./src").where(lambda p: p.suffix == ".py").map_parallel(lambda p: p.name, workers=4):
+    if res.success:
+            print("OK:", res.path, res.data, f"{res.execution_time:.3f}s")
+    else:
+            print("ERR:", res.path, res.exception)
+```
+
+Performance note:
+
+- map_parallel is thread-based and is a good fit for IO-bound functions
+    (reading files, network calls). For heavy CPU-bound mapping functions
+    consider a multiprocessing approach (outside the scope of this helper) to
+    avoid the GIL.
+
+
+## Manual page iteration
+
+```python
 paginator = query.paginate(50)
 page1 = next(paginator, [])  # First 50 files
 page2 = next(paginator, [])  # Next 50 files
@@ -417,7 +463,7 @@ for page_num, page in enumerate(query.paginate(200)):
         backup_file(file)
 ```
 
-### Streaming vs. Materialization
+## Streaming vs. Materialization
 
 **PQuery uses streaming by default for memory efficiency:**
 
@@ -448,7 +494,7 @@ file_names = list(PQuery().from_("./logs").select(lambda p: p.name))
 - **Streaming**: Large datasets, one-time processing, memory constrained
 - **Lists**: Need length/indexing, multiple iterations, small datasets
 
-### Performance and Efficiency
+## Performance and Efficiency
 
 PQuery uses lazy evaluation - filters are only applied when you call execution methods:
 
@@ -463,7 +509,7 @@ large_files = q.files()  # Execute the query
 more_files = q.where(lambda p: p.suffix == '.mp4').files()
 ```
 
-#### Efficiency Guide for Large Datasets
+## Efficiency Guide for Large Datasets
 
 Different operations have vastly different performance characteristics:
 
@@ -629,13 +675,13 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 
 ### Supported Pattern Syntax
 
-| Pattern | Description | Example | Matches |
-|---------|-------------|---------|---------|
-| `*` | Zero or more characters | `*.log` | `app.log`, `error.log.old`, `.log` |
-| `?` | Any single character | `file?.txt` | `file1.txt`, `fileA.txt` |
-| `[seq]` | Any character in sequence | `data[0-9].csv` | `data1.csv`, `data9.csv` |
-| `[!seq]` | Any character NOT in sequence | `*[!0-9].txt` | `fileA.txt`, `file_.txt` |
-| `[a-z]` | Character range | `[A-Z]*.py` | `Main.py`, `Test.py` |
+| Pattern  | Description                   | Example         | Matches                            |
+| -------- | ----------------------------- | --------------- | ---------------------------------- |
+| `*`      | Zero or more characters       | `*.log`         | `app.log`, `error.log.old`, `.log` |
+| `?`      | Any single character          | `file?.txt`     | `file1.txt`, `fileA.txt`           |
+| `[seq]`  | Any character in sequence     | `data[0-9].csv` | `data1.csv`, `data9.csv`           |
+| `[!seq]` | Any character NOT in sequence | `*[!0-9].txt`   | `fileA.txt`, `file_.txt`           |
+| `[a-z]`  | Character range               | `[A-Z]*.py`     | `Main.py`, `Test.py`               |
 
 ### Performance Notes
 
@@ -848,14 +894,15 @@ uv run ruff check
 
 ## Logging Support
 
-
 PQuery supports flexible logging for query operations and statistics. You can attach a standard Python logger to track progress, errors, and matched files during queries.
 
 **How to enable logging:**
+
 - Pass a `logging.Logger` instance to the `PQuery` constructor or use the class method `PQuery.set_logger()` to set a logger for all queries.
 - Log messages include query start, progress (every N files), errors, and completion.
 
 **Example: Setting a class-level logger**
+
 ```python
 import logging
 from src.tpath.pquery import PQuery
