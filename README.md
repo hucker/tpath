@@ -222,6 +222,8 @@ backup_files = (PQuery()
 
 > **Note**: PQuery is NOT SQL and is not meant to replicate all SQL features. It provides a paradigm with SQL-like characteristics for file operations, enabling semantically similar operations like filtering, sorting, and result transformation in a familiar pattern.
 
+While the code mimics SQL, it does so only to provide a set of tools that allows you to think abstractly about filtering files using a tool set that many programmers are familiar with. There is no query optimizer beyond being careful with calling stat.
+
 ### Basic Usage
 
 ```python
@@ -379,10 +381,10 @@ largest_files = (PQuery()
 # Sort all files by modification time
 all_by_time = (PQuery()
     .from_("./logs")
-    .sort(key=lambda p: p.mtime.timestamp, reverse=True)
+    .order_by(key=lambda p: p.mtime.timestamp, ascending=False)
 )
 
-# Performance tip: use take() for top-N, sort() for complete ordering
+# Performance tip: use take() for top-N, order_by() for complete ordering
 ```
 
 ### Pagination for Large Datasets
@@ -488,14 +490,14 @@ query.take(5, key=lambda p: p.mtime.timestamp)       # O(n + 5 log n) - 5 newest
 # 🐌 EXPENSIVE - Must materialize full results
 list(query.files())               # O(n) memory - loads all files into list
 query.count()                     # O(n) - must count all matches
-query.sort()                      # O(n log n) - full sort required
+query.order_by()                      # O(n log n) - full sort required
 
 # 💡 Performance Tips:
 # - Use streaming: for file in query.files() for memory efficiency
 # - Use pagination: for page in query.paginate(100) for batch processing
 # - Use list() only when you need random access or length
 # - Use distinct().take(n) for unique results with early stopping
-# - Use take(n, key=...) instead of list(query.sort().take(n)) when possible  
+# - Use take(n, key=...) instead of list(query.order_by().take(n)) when possible  
 # - Chain filters early: .where().distinct().take() is optimal order
 # - Use exists() instead of len(list(query.files())) > 0 to check for matches
 ```

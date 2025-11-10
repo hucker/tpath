@@ -559,10 +559,10 @@ class PQuery:
         """
         return sum(1 for _ in self.files(continue_on_exc=continue_on_exc))
 
-    def sort(
+    def order_by(
         self,
         key: Callable[[TPath], Any] | None = None,
-        reverse: bool = False,
+        ascending: bool = True,
         continue_on_exc: bool = True,
     ) -> list[TPath]:
         """
@@ -577,8 +577,8 @@ class PQuery:
         Args:
             key: Function to extract comparison key from TPath
                 Can return a single value or tuple for multi-column sorting
-            reverse: If False (default), sort in ascending order
-                    If True, sort in descending order
+            ascending: If True (default), sort in ascending order
+                      If False, sort in descending order
             continue_on_exc: If True, continue processing on exceptions. If False, raise.
 
         Returns:
@@ -586,16 +586,19 @@ class PQuery:
 
         Examples:
             # Sort by file size (smallest to largest)
-            by_size = query.sort(key=lambda p: p.size.bytes)
+            by_size = query.order_by(key=lambda p: p.size.bytes)
+
+            # Sort by file size (largest to smallest)
+            by_size_desc = query.order_by(key=lambda p: p.size.bytes, ascending=False)
 
             # Sort by modification time (newest to oldest)
-            by_time = query.sort(key=lambda p: p.mtime.timestamp, reverse=True)
+            by_time = query.order_by(key=lambda p: p.mtime.timestamp, ascending=False)
 
             # Multi-column sort: by directory, then by name
-            by_path = query.sort(key=lambda p: (p.parent.name, p.name))
+            by_path = query.order_by(key=lambda p: (p.parent.name, p.name))
 
             # Sort by name (alphabetical)
-            by_name = query.sort(key=lambda p: p.name)
+            by_name = query.order_by(key=lambda p: p.name)
         """
 
         def safe_iter():
@@ -608,8 +611,8 @@ class PQuery:
 
         files = list(safe_iter())
         if key is None:
-            return sorted(files, reverse=reverse)
-        return sorted(files, key=key, reverse=reverse)
+            return sorted(files, reverse=not ascending)
+        return sorted(files, key=key, reverse=not ascending)
 
     def paginate(
         self, page_size: int = 10, continue_on_exc: bool = True

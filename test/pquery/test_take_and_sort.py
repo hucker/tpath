@@ -1,5 +1,5 @@
 """
-Tests for PQuery take() and sort() methods.
+Tests for PQuery take() and order_by() methods.
 """
 
 import os
@@ -150,12 +150,12 @@ class TestTakeMethod:
 
 
 class TestSortMethod:
-    """Tests for the sort() method."""
+    """Tests for the order_by() method."""
 
     def test_sort_by_size_ascending(self, test_files: Path) -> None:
-        """Test sort() by size in ascending order."""
+        """Test order_by() by size in ascending order."""
         query = PQuery().from_(paths=test_files)
-        files = query.sort(key=lambda p: p.size.bytes)
+        files = query.order_by(key=lambda p: p.size.bytes)
 
         assert len(files) == 8
         sizes = [f.size.bytes for f in files]
@@ -167,9 +167,9 @@ class TestSortMethod:
         assert files[-1].name == "huge.txt"
 
     def test_sort_by_size_descending(self, test_files: Path) -> None:
-        """Test sort() by size in descending order."""
+        """Test order_by() by size in descending order."""
         query = PQuery().from_(paths=test_files)
-        files = query.sort(key=lambda p: p.size.bytes, reverse=True)
+        files = query.order_by(key=lambda p: p.size.bytes, ascending=False)
 
         assert len(files) == 8
         sizes = [f.size.bytes for f in files]
@@ -181,9 +181,9 @@ class TestSortMethod:
         assert files[-1].name == "tiny.txt"
 
     def test_sort_by_name(self, test_files: Path) -> None:
-        """Test sort() by filename."""
+        """Test order_by() by filename."""
         query = PQuery().from_(paths=test_files)
-        files = query.sort(key=lambda p: p.name)
+        files = query.order_by(key=lambda p: p.name)
 
         assert len(files) == 8
         names = [f.name for f in files]
@@ -193,20 +193,20 @@ class TestSortMethod:
         assert files[0].name == "alpha.txt"
 
     def test_sort_by_mtime(self, test_files: Path) -> None:
-        """Test sort() by modification time."""
+        """Test order_by() by modification time."""
         query = PQuery().from_(paths=test_files)
-        files = query.sort(key=lambda p: p.mtime.timestamp)
+        files = query.order_by(key=lambda p: p.mtime.timestamp)
 
         assert len(files) == 8
         timestamps = [f.mtime.timestamp for f in files]
         assert timestamps == sorted(timestamps)
 
     def test_sort_multi_column(self, test_files: Path) -> None:
-        """Test sort() with tuple key for multi-column sorting."""
+        """Test order_by() with tuple key for multi-column sorting."""
         query = PQuery().from_(paths=test_files)
 
         # Sort by first letter of name, then by size
-        files = query.sort(key=lambda p: (p.name[0], p.size.bytes))
+        files = query.order_by(key=lambda p: (p.name[0], p.size.bytes))
 
         assert len(files) == 8
 
@@ -215,9 +215,9 @@ class TestSortMethod:
         assert expected_keys == sorted(expected_keys)
 
     def test_sort_without_key(self, test_files: Path) -> None:
-        """Test sort() without key sorts by default TPath ordering."""
+        """Test order_by() without key sorts by default TPath ordering."""
         query = PQuery().from_(paths=test_files)
-        files = query.sort()
+        files = query.order_by()
 
         assert len(files) == 8
         # Should be sorted by path/name
@@ -225,14 +225,14 @@ class TestSortMethod:
         assert names == sorted(names)
 
     def test_sort_with_where_filter(self, test_files: Path) -> None:
-        """Test sort() combined with where() filter."""
+        """Test order_by() combined with where() filter."""
         query = (
             PQuery()
             .from_(paths=test_files)
             .where(lambda p: p.name.startswith(("a", "b", "g")))
         )  # alpha, beta, gamma
 
-        files = query.sort(key=lambda p: p.size.bytes)
+        files = query.order_by(key=lambda p: p.size.bytes)
 
         assert len(files) == 3
         assert all(f.name.startswith(("a", "b", "g")) for f in files)
@@ -252,7 +252,7 @@ class TestTakeVsSortPerformance:
 
         # Get top 3 largest files using both methods
         take_result = query.take(3, key=lambda p: p.size.bytes)
-        sort_result = query.sort(key=lambda p: p.size.bytes, reverse=True)[:3]
+        sort_result = query.order_by(key=lambda p: p.size.bytes, ascending=False)[:3]
 
         # Should have same files in same order
         assert len(take_result) == len(sort_result)
@@ -266,7 +266,7 @@ class TestTakeVsSortPerformance:
 
         # Both should give same result
         take_result = query.take(2, key=lambda p: p.size.bytes)
-        all_sorted = query.sort(key=lambda p: p.size.bytes, reverse=True)
+        all_sorted = query.order_by(key=lambda p: p.size.bytes, ascending=False)
         sort_result = all_sorted[:2]
 
         assert len(take_result) == len(sort_result) == 2
@@ -283,16 +283,16 @@ class TestEdgeCases:
             query = PQuery().from_(paths=temp_dir)
 
             assert query.take(5) == []
-            assert query.sort() == []
+            assert query.order_by() == []
             assert query.take(5, key=lambda p: p.size.bytes) == []
-            assert query.sort(key=lambda p: p.size.bytes) == []
+            assert query.order_by(key=lambda p: p.size.bytes) == []
 
     def test_nonexistent_directory(self):
         """Test take() and sort() on nonexistent directory."""
         query = PQuery().from_(paths="/nonexistent/path/12345")
 
         assert query.take(5) == []
-        assert query.sort() == []
+        assert query.order_by() == []
 
     def test_negative_take_count(self, test_files: Path) -> None:
         """Test take() with negative count."""
