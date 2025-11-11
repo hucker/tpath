@@ -1,220 +1,224 @@
-﻿# TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
+﻿
+# PQuery: Fluent, SQL-like File Querying for Python
 
-TPath is a pathlib extension that provides first-class age, size, and calendar membership functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
+PQuery provides a powerful, chainable API for filtering, transforming, and processing files using expressive, SQL-inspired syntax. It depends on [Frist](https://github.com/hucker/frist) for date calculations and [TPath](https://github.com/hucker/tpath) for property-based path objects and calendar-based filtering.
 
-## Philosophy: Property-Based File Operations
 
-**The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
+## Quick Examples
 
-Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages and membership, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
-
-### The Problem with Raw Timestamps
-
-Traditional file libraries give you timestamps and force you into complex, error-prone calculations:
+PQuery's `map_parallel` method lets you process files in parallel with minimal effort. This is especially valuable for file operations, where IO and metadata access can be slow. With just one method call, you get free parallelism—no thread management required.
 
 ```python
-from pathlib import Path
-from datetime import datetime
-import os
+from pquery import pquery
 
-# Simple example: Find files older than 7 days
-old_files = []
-for path in Path("/var/log").rglob("*"):
-    if path.is_file():
-        stat = path.stat()
-        # Manual age calculation - easy to get wrong
-        age_seconds = datetime.now().timestamp() - stat.st_mtime
-        age_days = age_seconds / 86400  # Remember: 60*60*24 = 86400
-        size_mb = stat.st_size / 1048576  # Remember: 1024*1024 = 1048576
-        
-        if age_days > 7 and size_mb > 10:
-            old_files.append(path)
+def check_log_file(log_file:Path):
+    # check for errors
+    result =  some_expensive_json_check(log_file)
+    return result
 
-print(f"Found {len(old_files)} old files")
+
+# Map file names in parallel (4 workers)
+for res in pquery(from_="/var/log").where(lambda p: matches(p, "*.log")).map_parallel(check_log_file, workers=4):
+    if res.success:
+        print("OK:", res.path, res.data, f"{res.execution_time:.3f}s")
+    else:
+        print("ERR:", res.path, res.exception)
 ```
 
-But what about more complex queries? Traditional approaches fall apart quickly:
+Benefits:
 
-```python
-import fnmatch
-from datetime import timedelta
-
-# Complex example: Backup candidates from multiple criteria
-backup_candidates = []
-for base_dir in ["/home/user/docs", "/home/user/projects"]:
-    for file_path in Path(base_dir).rglob("*"):
-        if not file_path.is_file():
-            continue
-            
-        # Complex pattern matching across multiple extensions
-        if not (fnmatch.fnmatch(file_path.name, "*.doc*") or 
-                fnmatch.fnmatch(file_path.name, "*.pdf") or
-                fnmatch.fnmatch(file_path.name, "*.xls*")):
-            continue
-        
-        stat = file_path.stat()
-        
-        # Manual size filtering
-        if stat.st_size < 1048576:  # Less than 1MB
-            continue
-            
-        # Complex date arithmetic for calendar-month boundaries
-        # Want files from Aug 1st through Oct 31st (if today is Oct 15th)  
-        mtime = datetime.fromtimestamp(stat.st_mtime)
-        now = datetime.now()
-        current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        three_months_ago = (current_month_start.replace(month=current_month_start.month-3) 
-                           if current_month_start.month > 3 
-                           else current_month_start.replace(year=current_month_start.year-1, month=current_month_start.month+9))
-        if mtime < three_months_ago:
-            continue
-            
-        # More calculations for reporting
-        age_days = (datetime.now() - mtime).days
-        size_mb = stat.st_size / 1048576
-        backup_candidates.append((file_path, size_mb, age_days))
-
-print(f"Found {len(backup_candidates)} backup candidates")
-```
-
-### TPath Solution: What Becomes Easy
+- No manual thread or process management
+- Scales with IO-bound workloads (reading, stat, metadata)
+- Scales with CPU-bound workloads on python3.14t (freethreading)
+- Handles errors and exceptions per file
+- Works with all PQuery filters and chaining
 
 ```python
 from tpath import TPath
+from pquery import PQuery, matches
 
-# Simple case: One line instead of a dozen
-old_files = [f for f in Path("/var/log").rglob("*") 
-             if TPath(f).age.days > 7 and TPath(f).size.mb > 10]
+# Find all large log files modified in the last month
+files = (
+    PQuery()
+    .from_("/var/log")
+    .where(lambda p: matches(p, "*.log") and p.size.mb > 10 and p.mtime.cal.in_months(-1, 0))
+    .select(lambda p: (p.name, p.size.mb, p.age.days))
+)
+for name, size, age in files:
+    print(f"{name}: {size:.2f} MB, {age:.2f} days old")
 ```
 
-**Complex queries become trivial with PQuery's fluent interface:**
+Sample output:
+
+```text
+app.log: 12.30 MB, 5.00 days old
+error.log: 15.80 MB, 29.12 days old
+archive.log: 22.10 MB, 31.75 days old
+```
+
+## Expensive Parallel Mapping Example
+
+`map_parallel` is an **expensive operation**: it launches threads and coordinates results, which is ideal for IO-bound workloads (like file reading or stat). For **CPU-bound operations** (such as examining JSON files for errors), Python 3.14's free-threading can significantly improve performance by allowing true parallel execution, bypassing the GIL.
+
+
+## Performance Note: Parallel Mapping and Python 3.14
+
+`map_parallel` is an **expensive operation**: it launches threads and coordinates results, which is ideal for IO-bound workloads (like file reading or stat). For **CPU-bound operations** (such as converting image files to thumbnails), Python 3.14's free-threading can significantly improve performance by allowing true parallel execution, bypassing the GIL.
+
+### Example: Parallel image thumbnail conversion (CPU-bound)
 
 ```python
-from tpath import PQuery, matches
+from pquery import PQuery
+from PIL import Image
 
-# Multi-directory, multi-pattern, calendar-membership query in 6 readable lines
-# in_months(-3, 0) = calendar month boundaries (Aug 1st - Oct 31st if today is Oct 15th)
-# Calendar membership ≠ duration math: 90 days ≠ 3 months, avg_days*months ≠ real months
-# TPath makes "this quarter", "this month", "last 3 months" queries natural and correct!
-backup_candidates = list(
-    PQuery()
-    .from_("/home/user/docs", "/home/user/projects")
-    .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*") and
-                     p.size.mb >= 1.0 and
-                     p.mtime.cal.in_months(-3, 0))
-    .select(lambda p: (p, p.size.mb, p.age.days))
-)
+def make_thumbnail(path):
+    img = Image.open(path)
+    img.thumbnail((128, 128))
+    thumb_path = path.with_name(path.stem + "_thumb.jpg")
+    img.save(thumb_path)
+    return thumb_path
 
-print(f"Found {len(backup_candidates)} backup candidates")
+# With Python 3.14+, map_parallel can utilize free-threading for CPU-bound tasks
+for res in PQuery.from_("./images").where(lambda p: matches(p, "*.jpg")).map_parallel(make_thumbnail, workers=8):
+    if res.success:
+        print("Thumbnail created:", res.data)
+    else:
+        print("Error:", res.path, res.exception)
 ```
 
-No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.
+**Summary:**
+
+- For IO-bound tasks, map_parallel is efficient and easy to use.
+- For CPU-bound tasks, Python 3.14+ free-threading can unlock much higher throughput.
+- Always consider the cost of thread creation and coordination for large datasets.
+
+## Core Features
+
+- **Fluent chaining**: Build queries step-by-step with `.from_()`, `.where()`, `.distinct()`, `.recursive()`, `.select()`, `.files()`, `.take()`, `.order_by()`, `.paginate()`, `.map_parallel()`, `.exists()`, `.count()`, `.first()`
+- **SQL-like filtering**: Use lambda expressions for flexible, readable file selection
+- **Pattern matching**: Use `matches()` for shell-style wildcards and multi-pattern filtering
+- **Calendar windows**: Filter by month, week, quarter, etc. using TPath and Frist
+- **Streaming and materialization**: Process files one-by-one or collect results as lists
+- **Parallel mapping**: Use `map_parallel()` for multi-threaded file processing
+- **Logging support**: Attach a logger for progress, errors, and stats
+
+## Chaining and SQL-like Functionality
+
+PQuery lets you chain methods to build complex queries in a readable, declarative style:
+
+```python
+# Find Python files larger than 1MB, modified this week, in multiple directories
+files = (
+    PQuery()
+    .from_("./src", "./lib")
+    .recursive(True)
+    .where(lambda p: matches(p, "*.py") and p.size.mb > 1 and p.mtime.cal.in_days(-7, 0))
+    .distinct()
+    .order_by(key=lambda p: p.mtime.timestamp, ascending=False)
+    .take(10)
+)
+for file in files:
+    print(file.name, file.size.mb, file.mtime)
+```
+
+### Method Overview
+
+- `.from_(...)` — Set starting directories (accepts multiple paths)
+- `.recursive(True)` — Enable deep traversal
+- `.where(lambda p: ...)` — Filter files with custom logic
+- `.distinct()` — Remove duplicates
+- `.order_by(key=..., ascending=True)` — Sort results
+- `.take(n, key=..., reverse=True)` — Get top-N files efficiently
+- `.select(lambda p: ...)` — Transform results
+- `.files()` — Stream matching files
+- `.paginate(page_size)` — Process files in batches
+- `.map_parallel(func, workers=4)` — Parallel mapping
+- `.exists()` — Check if any files match
+- `.count()` — Count matches
+- `.first()` — Get first match
+
+### Pattern Matching
+
+Use `matches()` for shell-style pattern filtering:
+
+```python
+from pquery import matches
+matches("app.log", "*.log")                # True
+matches("data.csv", "*.csv", "*.tsv")      # True
+matches("backup_2024.zip", "backup_202[3-4]*") # True
+```
+
+### Calendar Window Filtering
+
+Filter by calendar windows using TPath and Frist:
+
+```python
+from tpath import TPath
+file = TPath("report.pdf")
+if file.mtime.cal.in_months(-1, 0):
+    print("Modified in the last month!")
+```
+
+### Streaming vs. Materialization
+
+```python
+# Streaming (memory efficient)
+for file in PQuery().from_("./data").files():
+    process(file)
+
+# Materialize as list
+all_files = list(PQuery().from_("./data").files())
+```
 
 ## Installation
 
-THis project is **NOT ALIVE ON PYPI YET** at this time.
+This project is **not yet published on PyPI**.
 
 ### Using uv (Recommended)
 
 ```bash
-# Install directly from source
-uv add git+https://github.com/yourusername/tpath.git
-
-# Or for development
-git clone https://github.com/yourusername/tpath.git
-cd tpath
+uv add git+https://github.com/hucker/pquery.git
+git clone https://github.com/hucker/pquery.git
+cd pquery
 uv sync --dev
 ```
 
 ### Using pip
 
 ```bash
-# Install from PyPI (when published)
-pip install tpath
-
-# Or install from source
-pip install git+https://github.com/yourusername/tpath.git
+pip install git+https://github.com/hucker/pquery.git
 ```
 
-## Quick Start
+## Development
+
+See UV_GUIDE.md for details.
+
+```bash
+uv sync --dev
+uv run python -m pytest
+uv build
+uv run ruff format
+uv run ruff check
+```
+
+## Logging Support
+
+Attach a logger to track query progress, errors, and stats:
 
 ```python
-from tpath import TPath, matches
+import logging
+from pquery import PQuery
 
-# Create a TPath object - works like pathlib.Path (default time reference=dt.dateime.now())
-path = TPath("my_file.txt")
+logger = logging.getLogger("pquery")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+logger.addHandler(handler)
 
-# Direct property access - no calculations needed
-print(f"File is {path.age.days} days old")
-print(f"Size: {path.size.mb} MB")
-print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
-
-# Pattern matching
-print(f"Is Python file: {matches(path, '*.py')}")
-
-# File querying with PQuery
-from tpath import PQuery
-
-# Stream processing (memory efficient)
-for file in PQuery().where(lambda p: p.size.mb > 10).files():
-    process_large_file(file)
-
-# Materialize when you need a list
-large_files = list(PQuery().where(lambda p: p.size.mb > 10).files())
+PQuery.set_logger(logger)
+for file in PQuery(from_="/logs").files():
+    process(file)
 ```
 
-## Core Features
-
-### TPath - Enhanced Path Objects
-
-TPath extends pathlib.Path with property-based access to file metadata:
-
-```python
-from tpath import TPath
-
-path = TPath("my_file.txt")
-
-# Age properties
-print(f"File is {path.age.days} days old")
-print(f"Modified {path.mtime.age.minutes} minutes ago")
-
-# Size properties  
-print(f"File size: {path.size.mb} MB")
-print(f"File size: {path.size.gib} GiB")
-
-# Calendar membership properties
-print(f"Modified today: {path.mtime.cal.in_days(0)}")
-print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
-```
-
-### Shell-Style Pattern Matching
-
-Standalone `matches()` function for shell-style pattern matching:
-
-```python
-from tpath import matches, PQuery
-
-# Use with PQuery for file filtering
-python_files = (PQuery()
-    .from_("./src")
-    .where(lambda p: matches(p, "*.py"))
-    .files()
-)
-
-# Multiple patterns with case-insensitive matching
-log_files = (PQuery()
-    .from_("./logs")
-    .where(lambda p: matches(p, "*.log", "*.LOG", case_sensitive=False))
-    .files()
-)
-
-# Complex pattern matching with wildcards
-backup_files = (PQuery()
-    .from_("./backups")
-    .where(lambda p: matches(p, "backup_202[3-4]*", "*important*"))
-    .files()
-)
-```
 
 ## PQuery - Powerful File Querying
 
@@ -426,10 +430,10 @@ Key points:
 Example (inspect results):
 
 ```python
-from tpath import pquery
+from pquery import
 
 # Map file -> file name using 4 workers
-for res in pquery(from_="./src").where(lambda p: p.suffix == ".py").map_parallel(lambda p: p.name, workers=4):
+for res in PQuery.from("./src").where(lambda p: p.suffix == ".py").map_parallel(lambda p: p.name, workers=4):
     if res.success:
             print("OK:", res.path, res.data, f"{res.execution_time:.3f}s")
     else:
@@ -441,7 +445,7 @@ Performance note:
 - map_parallel is thread-based and is a good fit for IO-bound functions
     (reading files, network calls). For heavy CPU-bound mapping functions
     consider a multiprocessing approach (outside the scope of this helper) to
-    avoid the GIL.
+    avoid the GIL or use freethreading versions of python.
 
 
 ## Manual page iteration
@@ -548,57 +552,6 @@ query.order_by()                      # O(n log n) - full sort required
 # - Use exists() instead of len(list(query.files())) > 0 to check for matches
 ```
 
-## Pattern Matching with `matches()`
-
-**TPath provides a standalone `matches()` function for shell-style pattern matching.** This function works with any path type and integrates seamlessly with PQuery for powerful file filtering.
-
-### Basic Pattern Matching
-
-```python
-from tpath import matches, TPath
-from pathlib import Path
-
-# Basic usage - works with strings, Path, or TPath objects
-matches("app.log", "*.log")              # True
-matches("readme.txt", "*.log")           # False
-matches(Path("data.csv"), "*.csv")       # True  
-matches(TPath("script.py"), "*.py")      # True
-
-# Multiple patterns (OR logic) - returns True if ANY pattern matches
-matches("report.pdf", "*.pdf", "*.docx", "*.txt")     # True
-matches("config.ini", "*.json", "*.yaml", "*.toml")   # False
-
-# Wildcards and character classes
-matches("backup_2024.zip", "backup_202[3-4]*")       # True
-matches("data_file_v1.txt", "data_*_v?.txt")          # True
-matches("config.local.ini", "*config*")               # True
-```
-
-### Case Sensitivity Control
-
-```python
-# Case-sensitive matching (default)
-matches("IMAGE.JPG", "*.jpg")                         # False
-matches("IMAGE.JPG", "*.JPG")                         # True
-
-# Case-insensitive matching  
-matches("IMAGE.JPG", "*.jpg", case_sensitive=False)   # True
-matches("README.TXT", "*readme*", case_sensitive=False) # True
-```
-
-### Full Path vs Filename Matching
-
-```python
-# Default: match against filename only
-test_path = "/home/user/projects/app/src/main.py"
-matches(test_path, "*.py")                             # True
-matches(test_path, "*app*")                           # False (filename is "main.py")
-
-# Full path matching
-matches(test_path, "*app*", full_path=True)           # True
-matches(test_path, "*/src/*", full_path=True)         # True
-matches(test_path, "*projects*", full_path=True)      # True
-```
 
 ### Integration with PQuery
 
@@ -869,7 +822,7 @@ if path.age.seconds > expire_time:
 - **Different time types**: Handle ctime, mtime, atime separately with user-friendly aliases
 - **Performance optimized**: Cached stat calls to avoid repeated filesystem operations
 - **Mathematical conventions**: Negative = past, 0 = now, positive = future
-- **Property Based Dates by [Chronos](https://github.com/hucker/chronos)**
+- **Property Based Dates by [Frist](https://github.com/hucker/frist)**
 
 ## Development
 
@@ -905,7 +858,7 @@ PQuery supports flexible logging for query operations and statistics. You can at
 
 ```python
 import logging
-from src.tpath.pquery import PQuery
+from src.pquery import PQuery
 
 logger = logging.getLogger("pquery_global")
 logger.setLevel(logging.INFO)

@@ -1,3 +1,4 @@
+
 # Chronos Project Code Style Guide
 
 ## Python Formatting
@@ -28,45 +29,41 @@
 
 - All code must pass Ruff checks with no errors or warnings.
 
-## General
 
-- Keep code DRY (Don't Repeat Yourself).
-- Prefer clarity and readability over cleverness.
-- Use Google-style docstrings for all modules, classes, and functions.
-- All test functions must have at least a 1-line docstring describing the test purpose.
-- Use the AAA (Arrange/Act/Assert) structure for setting up tests:
-  - Add `# Arrange`, `# Act`, and `# Assert` comments for non-trivial tests or fixtures.
-```python
-      def test_code():
-            # Arrange
-            test_list = [1,2,3]
+## Testing & General Guidelines
 
-            #Act
-            actual_sum = my_func(test_list)
-            expected_sum = 6
-
-            # Assert
-            assert actual_sum = expected_sum
-```
-  - For fixtures, include an `# Arrange` comment.
- 	- For simple tests, comments are optional, but use them if there are several lines for each section.
-
-         ```python
-         assert sum([1,2]) == 3
- 	- For non-trivial cases, assign expected and actual values separately, and use `assert actual == expected`.
-
-	- Add descriptors to clarify, e.g., `assert actual_month == expected_month`.
- 	- For multiple values, always use descriptors, e.g.:
+- Strongly prefer test functions over test classes.
+- All test functions must have at least a 1-line Google-style docstring describing the test purpose.
+- Always include an assert message in every assertion.
+- For non-trivial tests, use the form:
 
   ```python
-  assert actual_day == expedted_day
-  assert actual_month == expected_month
+  assert actual_??? == expected_???, "message"
   ```
 
-  - All asserts should have an assert message
-  -
-- Prefer parameterized tests when checking multiple cases (e.g., using pytest.mark.parametrize).
-- Always use temporary folders (e.g., pytest's tmp_path fixture) for filesystem interaction in tests to ensure cleanup.
+- Use the AAA (Arrange/Act/Assert) structure for setting up tests:
+  - Add `# Arrange`, `# Act`, and `# Assert` comments for non-trivial tests or fixtures.
+  - For fixtures, include an `# Arrange` comment.
+  - For simple tests, comments are optional, but use them if there are several lines for each section.
+
+    ```python
+    assert sum([1, 2]) == 3
+    ```
+
+  - For non-trivial cases, assign expected and actual values separately, and use `assert actual == expected`.
+  - Add descriptors to clarify, e.g., `assert actual_month == expected_month`.
+  - For multiple values, always use descriptors, e.g.:
+
+    ```python
+    assert actual_day == expected_day
+    assert actual_month == expected_month
+    ```
+
+- Prefer parameterized tests when checking multiple cases (e.g., using `pytest.mark.parametrize`).
+- Use temporary folders (e.g., pytest's `tmp_path` fixture) for filesystem interaction in tests to ensure cleanup.
+- Use Google-style docstrings for all modules, classes, and functions.
+- Keep code DRY (Don't Repeat Yourself).
+- Prefer clarity and readability over cleverness.
 
 ---
 
@@ -74,6 +71,6 @@
 
 - Always run `ruff check --fix` after modifying any file.
 - Always add type hints to all new or edited code.
-- Always use Google-style docstrings for modules, classes, and functions.
+- Always use Google-style docstrings for modules, classes, methods and functionss.
 - All test functions must have at least a 1-line docstring.
 - Follow this guide for all code generation and edits unless otherwise instructed.

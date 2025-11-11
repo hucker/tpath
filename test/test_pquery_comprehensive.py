@@ -4,12 +4,12 @@ Comprehensive tests for the PQuery API functionality.
 
 from pathlib import Path
 
-from src.tpath.pquery import PQuery, pquery
+from src.pquery import PQuery, pquery
 
 
 def test_pquery_package_imports():
     """Test that all expected functions are available from the package."""
-    from src.tpath.pquery import pquery
+    from src.pquery import pquery
 
     # Test that they're callable
     assert callable(pquery)
@@ -84,7 +84,7 @@ def test_pquery_error_handling(tmp_path):
     assert len(list(query)) == 1
 
 
-def test_pquery_nonexistent_paths():
+def test_pquery_nonexistent_paths(tmp_path: Path) -> None:
     """Test behavior with nonexistent paths."""
     # Test with nonexistent single path
     query = pquery(from_="/nonexistent/path").where(lambda p: True)
@@ -95,9 +95,8 @@ def test_pquery_nonexistent_paths():
     assert query.count() == 0
 
     # Test with mix of existing and nonexistent paths
-    from tempfile import mkdtemp
-
-    temp_dir = Path(mkdtemp())
+    temp_dir = tmp_path / "existing"
+    temp_dir.mkdir()
     (temp_dir / "test.txt").write_text("test")
 
     query = pquery(from_=[str(temp_dir), "/nonexistent"]).where(lambda p: True)

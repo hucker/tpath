@@ -114,6 +114,15 @@ wheels = [
 ]
 
 [[package]]
+name = "frist"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/4b/e8d093d995c138125fad96e726b206660ab0b74db3549223d0e141cb7db8/frist-0.6.0.tar.gz", hash = "sha256:0c8c12951ce1a66440b59b6c233786ff69138af1c86e3d157450c63ea41cb16d", size = 19906 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/8c/d30551557ce53615ab4304dac31774490ba3bcbc10c5bd99ff9b763600ee/frist-0.6.0-py3-none-any.whl", hash = "sha256:5fec66e25e091fd4ed7a3945a1908ff320269e2f7f627ac316c9b9e7609f4923", size = 9571 },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -212,6 +221,61 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/96/2d/02d4312c973c6050a18b314a5ad0b3210edb65a906f868e31c111dede4a6/pluggy-1.5.0.tar.gz", hash = "sha256:2cffa88e94fdc978c4c574f15f9e59b7f4201d439195c3715ca9e2486f1d0cf1", size = 67955 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/5f/e351af9a41f866ac3f1fac4ca0613908d9a41741cfcf2228f4ad853b697d/pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669", size = 20556 },
+]
+
+[[package]]
+name = "pqery"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "tpath" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+lint = [
+    { name = "mypy" },
+    { name = "ruff" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.0" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=4.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
+    { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.1.0" },
+    { name = "tpath", specifier = ">=0.2.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", specifier = ">=7.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=4.0" },
 ]
 
 [[package]]
@@ -401,55 +465,14 @@ wheels = [
 
 [[package]]
 name = "tpath"
-version = "0.1.0"
-source = { editable = "." }
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "coverage" },
+    { name = "frist" },
 ]
-
-[package.optional-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-lint = [
-    { name = "mypy" },
-    { name = "ruff" },
-]
-test = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "coverage", specifier = ">=7.6.1" },
-    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
-    { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=4.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
-    { name = "ruff", marker = "extra == 'lint'", specifier = ">=0.1.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "coverage", specifier = ">=7.0" },
-    { name = "pytest", specifier = ">=8.3.5" },
+sdist = { url = "https://files.pythonhosted.org/packages/c0/61/671b0016fe6c2c61e710440fbd3db69db2c1a52f2e8670c8e3c3d0e9e82b/tpath-0.2.0.tar.gz", hash = "sha256:b115de40d3338a7578f4a38fbfc79ceae28c7f380397c35beb4fb95e57e610ee", size = 60064 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/d0/0fb46214ba9522c55a39b1f62b033f7ee6ba2fdb9af0b9568216e934e91a/tpath-0.2.0-py3-none-any.whl", hash = "sha256:80e1f54a5a13ea49bee801d0f2faec39f46cfed64979ab47693b83ea42e9395d", size = 14707 },
 ]
 
 [[package]]

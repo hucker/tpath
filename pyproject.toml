@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tpath"
+name = "pqery"
 version = "0.1.0"
-description = "Enhanced pathlib with age and size utilities using lambdas"
+description = "A query like syntax for python Path objects."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "MIT"}
 authors = [
@@ -33,7 +33,7 @@ classifiers = [
 keywords = ["pathlib", "file", "age", "size", "lambda", "utility"]
 requires-python = ">=3.10"
 dependencies = [
-    "coverage>=7.6.1",
+    "tpath>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -55,14 +55,14 @@ lint = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hucker/tpath"
-Documentation = "https://github.com/hucker/tpath#readme"
-Repository = "https://github.com/hucker/tpath.git"
-"Bug Tracker" = "https://github.com/hucker/tpath/issues"
-Changelog = "https://github.com/hucker/tpath/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/hucker/pquery"
+Documentation = "https://github.com/hucker/pquery#readme"
+Repository = "https://github.com/hucker/pquery.git"
+"Bug Tracker" = "https://github.com/hucker/pquery/issues"
+Changelog = "https://github.com/hucker/pquery/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tpath"]
+packages = ["src/pquery"]
 
 [tool.ruff]
 line-length = 88

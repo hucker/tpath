@@ -29,6 +29,7 @@ Example:
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import threading
 import time
@@ -37,7 +38,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypeAlias, cast
 
-from .._core import TPath
+from tpath import TPath
+
 from ._stats import PQueryStats
 
 # Type aliases for better readability and IDE support
@@ -80,40 +82,6 @@ class PQuery:
 
     Similar to pathql but using lambda expressions for flexible filtering.
     """
-
-    def select(
-        self, field: Callable[[TPath], Any], continue_on_exc: bool = True
-    ) -> Iterator[Any]:
-        """
-        Execute the query and return selected fields from matching files as an iterator.
-
-        This terminal method executes the configured query and returns an iterator
-        over the selected field values. After calling select(), the fluent chain ends.
-
-        Args:
-            field: Lambda function that takes a TPath and returns any value
-
-        Returns:
-            Iterator[Any]: Iterator of selected values from matching files
-
-        Examples:
-            # Stream processing (memory efficient)
-            for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
-                process_size(size)
-
-            # Materialize when needed
-            file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
-        """
-
-        def gen():
-            for path in self._distinct_iter_files():
-                try:
-                    yield field(path)
-                except Exception:
-                    if not continue_on_exc:
-                        raise
-
-        return gen()
 
     # Class-level logger (can be set globally)
     _logger: logging.Logger | None = None
@@ -412,8 +380,6 @@ class PQuery:
 
     def _iter_files(self, continue_on_exc: bool = True) -> Iterator[TPath]:
         """Internal method to iterate over all matching files using os.scandir, with live stats tracking."""
-        import os
-        from pathlib import Path
 
         # Convert TPath objects to string paths for stats
         self._stats.set_paths([str(p) for p in self.start_paths])
@@ -546,6 +512,40 @@ class PQuery:
                         logger.error(
                             f"PQuery.files caught exception: {exc!r}, continue_on_exc={continue_on_exc}"
                         )
+                    if not continue_on_exc:
+                        raise
+
+        return gen()
+
+    def select(
+        self, field: Callable[[TPath], Any], continue_on_exc: bool = True
+    ) -> Iterator[Any]:
+        """
+        Convert a stream of TPath objects into a stream of user-mapped values.
+
+        This terminal method executes the query and yields the result of applying
+        the provided mapping function to each matching TPath. The fluent chain ends after select().
+
+        Args:
+            field: Function that takes a TPath and returns the value when field(tpath) is called.
+
+        Returns:
+            Iterator[Any]: Iterator of mapped values from matching files.
+
+        Examples:
+            # Stream file sizes
+            for size in pquery(from_="/logs").where(lambda p: p.age.hours < 24).select(lambda p: p.size.bytes):
+                process_size(size)
+
+            # Collect file names
+            file_names = list(pquery(from_="/logs").where(lambda p: p.suffix == ".log").select(lambda p: p.name))
+        """
+
+        def gen():
+            for path in self._distinct_iter_files():
+                try:
+                    yield field(path)
+                except Exception:
                     if not continue_on_exc:
                         raise
 

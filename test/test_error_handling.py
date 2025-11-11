@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from src.tpath.pquery._pquery import PQuery, TPath
+from src.pquery._pquery import PQuery
+from tpath import TPath
 
 
 class DummyTPath(TPath):

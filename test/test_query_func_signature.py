@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from src.tpath.pquery import PQuery
+from src.pquery import PQuery
 
 
 def test_where_lambda_with_two_params(tmp_path: Path):

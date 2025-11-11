@@ -2,7 +2,7 @@
 Tests for the new fluent PQuery API.
 """
 
-from src.tpath.pquery import PQuery, pquery
+from src.pquery import PQuery, pquery
 
 
 def test_pquery_default_constructor(tmp_path):
@@ -49,7 +49,9 @@ def test_pquery_fluent_from_methods(tmp_path):
     assert files[0].name == "file_dir1.txt"
 
     # Test chaining from_() calls
-    query = PQuery().from_(paths=dir1).from_(paths=dir2).where(lambda p: p.suffix == ".txt")
+    query = (
+        PQuery().from_(paths=dir1).from_(paths=dir2).where(lambda p: p.suffix == ".txt")
+    )
     files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
@@ -58,7 +60,11 @@ def test_pquery_fluent_from_methods(tmp_path):
 
     # Test multiple from_() calls
     query = (
-        PQuery().from_(paths=dir1).from_(paths=dir2).from_(paths=dir3).where(lambda p: p.suffix == ".txt")
+        PQuery()
+        .from_(paths=dir1)
+        .from_(paths=dir2)
+        .from_(paths=dir3)
+        .where(lambda p: p.suffix == ".txt")
     )
     files = list(query.files())
     assert len(files) == 3
@@ -78,7 +84,12 @@ def test_pquery_recursive_method(tmp_path):
     (sub_dir / "nested.txt").write_text("nested")
 
     # Test recursive(True) - default
-    query = PQuery().from_(paths=tmp_path).recursive(True).where(lambda p: p.suffix == ".txt")
+    query = (
+        PQuery()
+        .from_(paths=tmp_path)
+        .recursive(True)
+        .where(lambda p: p.suffix == ".txt")
+    )
     files = list(query.files())
     assert len(files) == 2
     names = [f.name for f in files]
@@ -87,7 +98,10 @@ def test_pquery_recursive_method(tmp_path):
 
     # Test recursive(False)
     query = (
-        PQuery().from_(paths=tmp_path).recursive(False).where(lambda p: p.suffix == ".txt")
+        PQuery()
+        .from_(paths=tmp_path)
+        .recursive(False)
+        .where(lambda p: p.suffix == ".txt")
     )
     files = list(query.files())
     assert len(files) == 1

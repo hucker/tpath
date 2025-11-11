@@ -4,7 +4,8 @@ Test for multiple where() detection in PQuery.
 
 import pathlib
 
-from src.tpath import PQuery, TPath
+from src.pquery import PQuery
+from tpath import TPath
 
 
 def test_multiple_where_calls_compose_as_and(tmp_path: pathlib.Path):

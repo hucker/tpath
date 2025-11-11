@@ -4,7 +4,7 @@ Test lazy initialization of PQuery constructor parameters.
 
 from pathlib import Path
 
-from tpath.pquery import PQuery
+from src.pquery import PQuery
 
 
 def test_default_constructor_lazy_initialization(tmp_path: Path) -> None:

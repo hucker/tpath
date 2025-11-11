@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.tpath.pquery._stats import PQueryStats
+from src.pquery._stats import PQueryStats
 
 
 def test_initial_state() -> None:
@@ -69,12 +69,12 @@ def test_add_matched_and_unmatched_files_counts_and_timing(N: int, M: int) -> No
     # Assert
     expected_scanned = N + M
     expected_matched = N
-    assert (
-        stats.files_scanned == expected_scanned
-    ), f"actual_scanned={stats.files_scanned}, expected_scanned={expected_scanned}"
-    assert (
-        stats.files_matched == expected_matched
-    ), f"actual_matched={stats.files_matched}, expected_matched={expected_matched}"
+    assert stats.files_scanned == expected_scanned, (
+        f"actual_scanned={stats.files_scanned}, expected_scanned={expected_scanned}"
+    )
+    assert stats.files_matched == expected_matched, (
+        f"actual_matched={stats.files_matched}, expected_matched={expected_matched}"
+    )
     if expected_scanned > 0:
         assert stats.elapsed_time is not None and stats.elapsed_time >= 0
         assert end is not None and start is not None and end >= start

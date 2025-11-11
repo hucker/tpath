@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from src.tpath.pquery._stats import PQueryStats
+from src.pquery._stats import PQueryStats
 
 
 class DummyLogger(logging.Logger):

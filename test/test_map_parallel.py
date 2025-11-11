@@ -10,7 +10,7 @@ import time
 
 import pytest
 
-from tpath.pquery._pquery import pquery
+from src.pquery._pquery import pquery
 
 
 def _make_files(tmp_path: pathlib.Path, count: int) -> list[str]:
