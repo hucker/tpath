@@ -200,3 +200,6 @@ tmp/
 test_*.txt
 example_*.txt
 *.test
+
+# PyPI configuration
+.pypirc
