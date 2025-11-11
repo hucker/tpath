@@ -12,6 +12,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from frist import Age
+
 from ._constants import (
     ACCESS_MODE_ALL,
     ACCESS_MODE_EXECUTE,
@@ -23,7 +25,6 @@ from ._constants import (
 )
 from ._size import Size
 from ._time import PathTime
-from .chronos import Age
 
 
 class TPath(Path):

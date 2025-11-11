@@ -17,11 +17,12 @@ __version__ = "0.1.0"
 __author__ = "Chuck Bass"
 
 # Core exports - always available
+from frist import Age, Cal, TimeSpan
+
 from ._core import TPath
 from ._size import Size
 from ._time import PathTime, TimeType
 from ._utils import matches
-from .chronos import Age, Cal, TimeSpan
 from .pquery import PathInput, PathLike, PathSequence, PQuery, pquery
 
 # All exports
@@ -31,7 +32,7 @@ __all__ = [
     "Size",
     "PathTime",
     "TimeType",
-    # Chronos utilities
+    # Frist utilities
     "Age",
     "Cal",
     "TimeSpan",

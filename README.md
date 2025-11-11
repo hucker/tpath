@@ -869,7 +869,7 @@ if path.age.seconds > expire_time:
 - **Different time types**: Handle ctime, mtime, atime separately with user-friendly aliases
 - **Performance optimized**: Cached stat calls to avoid repeated filesystem operations
 - **Mathematical conventions**: Negative = past, 0 = now, positive = future
-- **Property Based Dates by [Chronos](https://github.com/hucker/chronos)**
+- **Property Based Dates by [Frist](https://github.com/hucker/frist)**
 
 ## Development
 

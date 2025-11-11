@@ -114,6 +114,15 @@ wheels = [
 ]
 
 [[package]]
+name = "frist"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/4b/e8d093d995c138125fad96e726b206660ab0b74db3549223d0e141cb7db8/frist-0.6.0.tar.gz", hash = "sha256:0c8c12951ce1a66440b59b6c233786ff69138af1c86e3d157450c63ea41cb16d", size = 19906 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/8c/d30551557ce53615ab4304dac31774490ba3bcbc10c5bd99ff9b763600ee/frist-0.6.0-py3-none-any.whl", hash = "sha256:5fec66e25e091fd4ed7a3945a1908ff320269e2f7f627ac316c9b9e7609f4923", size = 9571 },
+]
+
+[[package]]
 name = "identify"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -404,7 +413,7 @@ name = "tpath"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "coverage" },
+    { name = "frist" },
 ]
 
 [package.optional-dependencies]
@@ -429,12 +438,13 @@ test = [
 dev = [
     { name = "coverage" },
     { name = "pytest" },
+    { name = "pytest-cov" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "coverage", specifier = ">=7.6.1" },
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
+    { name = "frist", specifier = ">0.5.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },
@@ -450,6 +460,7 @@ requires-dist = [
 dev = [
     { name = "coverage", specifier = ">=7.0" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=4.0" },
 ]
 
 [[package]]

@@ -33,7 +33,7 @@ classifiers = [
 keywords = ["pathlib", "file", "age", "size", "lambda", "utility"]
 requires-python = ">=3.10"
 dependencies = [
-    "coverage>=7.6.1",
+    "frist>0.5.0",
 ]
 
 [project.optional-dependencies]
