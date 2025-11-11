@@ -34,6 +34,7 @@ kb_size = path.size.kb         # cached stat reused
 ## Cache Behavior
 
 ### Per-Instance Caching
+
 - Each `TPath` instance has its own cache
 - Cache persists for the lifetime of the instance
 - Different instances of the same file path have separate caches
@@ -48,6 +49,7 @@ size2 = path2.size.bytes  # path2's cache (separate stat call)
 ```
 
 ### Cache Invalidation
+
 - Cache is **not** automatically invalidated when file changes
 - Create a new `TPath` instance to get fresh file state
 - This is intentional for performance reasons

@@ -63,6 +63,7 @@ Changelog = "https://github.com/hucker/tpath/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tpath"]
+include = ["src/tpath/py.typed"]
 
 [tool.ruff]
 line-length = 88

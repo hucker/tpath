@@ -4,7 +4,7 @@ The TPath package has been refactored into separate modules for better maintaina
 
 ## Package Structure
 
-```
+``` text
 src/tpath/
 ├── __init__.py          # Main package interface
 ├── _core.py             # TPath main class and tpath() function
@@ -54,26 +54,31 @@ from tpath.tpath import TPath, Size, Age, Time
 ## Benefits of the New Structure
 
 ### 1. **Separation of Concerns**
+
 - Each class has its own file
 - Related functionality is grouped together
 - Easier to understand and maintain
 
 ### 2. **Better IDE Support**
+
 - Cleaner autocompletion
 - Better navigation between related classes
 - Clearer module boundaries
 
 ### 3. **Maintainability**
+
 - Easier to modify individual components
 - Reduced risk of merge conflicts
 - Clear module responsibilities
 
 ### 4. **Testing**
+
 - Can test individual modules in isolation
 - Cleaner test organization
 - Better test coverage analysis
 
 ### 5. **Package Interface**
+
 - Users don't need to know internal structure
 - Clean public API via `__init__.py`
 - Easy to reorganize internally without breaking user code
@@ -81,31 +86,37 @@ from tpath.tpath import TPath, Size, Age, Time
 ## Module Responsibilities
 
 ### `core.py`
+
 - Main `TPath` class
 - Core pathlib extension functionality
 - `tpath()` convenience function
 
 ### `_size.py` 
+
 - `Size` class for size calculations
 - Size calculations and unit conversions
 - Size string parsing (`fromstr` method)
 
 ### `_age.py`
+
 - `Age` class for time calculations
 - Age calculations in various time units
 - Time difference computations
 
 ### `_time.py`
+
 - `Time` class for time properties
 - Handles different time types (ctime, mtime, atime)
 - Bridges between time types and age calculations
 
 ### `__init__.py`
+
 - Public package interface
 - Exposes all user-facing classes and functions
 - Package metadata and documentation
 
 ### `tpath.py` (Backward Compatibility)
+
 - Re-exports all classes for backward compatibility
 - Marked as deprecated in documentation
 - Will be maintained for existing code
@@ -113,6 +124,7 @@ from tpath.tpath import TPath, Size, Age, Time
 ## Migration Guide
 
 ### For New Projects
+
 Use the clean package-level imports:
 
 ```python
@@ -120,9 +132,11 @@ from tpath import TPath, Size, Age, Time
 ```
 
 ### For Existing Projects
+
 No changes needed - all existing imports continue to work.
 
 ### Future Considerations
+
 The `tpath.py` module may be deprecated in future major versions, but will be maintained for backward compatibility in the current major version.
 
 ## Example Usage

@@ -11,7 +11,7 @@ The auto-discovery system in `src/tpath/__init__.py`:
 1. **Scans for new modules**: Automatically finds all `_*.py` files in the package directory
 2. **Imports modules**: Dynamically imports any new modules that aren't part of the core set
 3. **Exports public APIs**: If a module has an `__all__` list, those exports are automatically added to the package's public API
-4. **Updates __all__**: The main `__all__` list is automatically updated with discovered exports
+4. **Updates **all****: The main `__all__` list is automatically updated with discovered exports
 
 ## Adding New Modules
 
@@ -22,6 +22,7 @@ To add a new module that will be automatically discovered:
 2. **Define your classes/functions** in the file
 
 3. **Add an `__all__` list** to specify what should be exported:
+
    ```python
    # _mymodule.py
    class MyClass:
@@ -35,6 +36,7 @@ To add a new module that will be automatically discovered:
    ```
 
 4. **Import and use**: The module will be automatically imported and available:
+
    ```python
    from tpath import MyClass, my_function
    ```
@@ -42,6 +44,7 @@ To add a new module that will be automatically discovered:
 ## Core Modules
 
 These modules are always imported explicitly (not auto-discovered):
+
 - `_core.py` - TPath, tpath
 - `_age.py` - Age
 - `_size.py` - Size  

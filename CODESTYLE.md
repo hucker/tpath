@@ -1,4 +1,4 @@
-# Chronos Project Code Style Guide
+# TPath Project Code Style Guide
 
 ## Python Formatting
 
@@ -36,6 +36,7 @@
 - All test functions must have at least a 1-line docstring describing the test purpose.
 - Use the AAA (Arrange/Act/Assert) structure for setting up tests:
   - Add `# Arrange`, `# Act`, and `# Assert` comments for non-trivial tests or fixtures.
+
 ```python
       def test_code():
             # Arrange
@@ -48,23 +49,25 @@
             # Assert
             assert actual_sum = expected_sum
 ```
-  - For fixtures, include an `# Arrange` comment.
- 	- For simple tests, comments are optional, but use them if there are several lines for each section.
+
+- For fixtures, include an `# Arrange` comment.
+  - For simple tests, comments are optional, but use them if there are several lines for each section.
 
          ```python
          assert sum([1,2]) == 3
- 	- For non-trivial cases, assign expected and actual values separately, and use `assert actual == expected`.
+         ```
+  - For non-trivial cases, assign expected and actual values separately, and use `assert actual == expected`.
 
-	- Add descriptors to clarify, e.g., `assert actual_month == expected_month`.
- 	- For multiple values, always use descriptors, e.g.:
+    - Add descriptors to clarify, e.g., `assert actual_month == expected_month`.
+  - For multiple values, always use descriptors, e.g.:
 
   ```python
   assert actual_day == expedted_day
   assert actual_month == expected_month
   ```
 
-  - All asserts should have an assert message
-  -
+- All asserts should have an assert message
+-
 - Prefer parameterized tests when checking multiple cases (e.g., using pytest.mark.parametrize).
 - Always use temporary folders (e.g., pytest's tmp_path fixture) for filesystem interaction in tests to ensure cleanup.
 

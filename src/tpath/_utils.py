@@ -3,11 +3,19 @@ Utility functions for TPath, including pattern matching.
 """
 
 import fnmatch
+from collections.abc import Sequence
+from pathlib import Path
+from typing import TypeAlias
 
 from ._core import TPath
-from .pquery._pquery import PathLike
 
 __all__ = ["matches"]
+
+# Type aliases for better readability and IDE support
+PathLike: TypeAlias = str | Path | TPath
+PathSequence: TypeAlias = Sequence[PathLike]
+# PathInput represents what from_() accepts: single paths or sequences of paths
+PathInput: TypeAlias = PathLike | PathSequence
 
 
 def matches(
@@ -48,9 +56,6 @@ def matches(
         p = Path("/tmp/cache/temp.log")
         matches(p, "*/cache/*", full_path=True)  # True
 
-        # Use with PQuery
-        from tpath import PQuery
-        log_files = PQuery().from_(paths="./logs").where(lambda p: matches(p, "*.log")).files()
 
     Patterns:
         *        Matches any sequence of characters

@@ -22,8 +22,7 @@ from frist import Age, Cal, TimeSpan
 from ._core import TPath
 from ._size import Size
 from ._time import PathTime, TimeType
-from ._utils import matches
-from .pquery import PathInput, PathLike, PathSequence, PQuery, pquery
+from ._utils import PathInput, PathLike, PathSequence, matches
 
 # All exports
 __all__ = [
@@ -36,9 +35,6 @@ __all__ = [
     "Age",
     "Cal",
     "TimeSpan",
-    # PQuery functionality
-    "PQuery",
-    "pquery",
     # Type aliases for type hints
     "PathLike",
     "PathInput",

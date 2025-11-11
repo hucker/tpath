@@ -20,11 +20,13 @@ test/
 ## Running Tests
 
 ### Run All Modular Tests
+
 ```bash
 python test/run_all_tests.py
 ```
 
 ### Run Individual Test Modules
+
 ```bash
 python test/test_core.py        # Core TPath functionality
 python test/test_age.py         # Age calculation tests
@@ -36,18 +38,21 @@ python test/test_integration.py # Integration tests
 ## Test Categories
 
 ### Core Tests (`test_core.py`)
+
 - TPath object creation and initialization
 - Pathlib compatibility verification
 - Convenience function testing
 - Property access validation
 
 ### Age Tests (`test_age.py`)
+
 - Age property calculations (seconds, minutes, hours, days, weeks, months, years)
 - Custom base time functionality
 - Time progression verification
 - Different time types (ctime, mtime, atime)
 
 ### Size Tests (`test_size.py`)
+
 - Size property calculations (bytes, KB/KiB, MB/MiB, etc.)
 - Size string parsing (`Size.fromstr()`)
 - Error handling for invalid size strings
@@ -55,12 +60,14 @@ python test/test_integration.py # Integration tests
 - Size comparisons
 
 ### Time Tests (`test_time.py`)
+
 - Time property functionality (ctime, mtime, atime)
 - Timestamp and datetime access
 - Custom base time with different time types
 - Nonexistent file handling
 
 ### Integration Tests (`test_integration.py`)
+
 - Complete workflow testing
 - File operations with TPath features
 - Pathlib compatibility in real scenarios
@@ -85,12 +92,14 @@ python test/test_integration.py # Integration tests
 ## Test Output
 
 Each test module provides clear output showing:
+
 - ✅ Passed tests with descriptive messages
 - ❌ Failed tests with error details
 - Test data and results for verification
 - Summary of all tests in the module
 
 The main test runner (`run_all_tests.py`) provides:
+
 - Progress for each test module
 - Overall summary of passed/failed modules
 - Clear indication of any issues

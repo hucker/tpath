@@ -95,40 +95,6 @@ class TestMatchesFunction:
         assert matches("backup_app_2024.zip", "backup_*_*.zip") is True
         assert matches("backup_2024.zip", "backup_*_*.zip") is False
 
-    def test_use_with_pquery(self):
-        """Test using matches() function with PQuery."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            # Create test files
-            (temp_path / "app.log").write_text("log content")
-            (temp_path / "error.log").write_text("error log")
-            (temp_path / "config.json").write_text("config")
-            (temp_path / "backup.zip").write_text("backup")
-
-            # Use matches function with PQuery
-            from tpath import PQuery
-
-            log_files = (
-                PQuery().from_(paths=temp_path).where(lambda p: matches(p, "*.log")).files()
-            )
-
-            log_names = [f.name for f in log_files]
-            assert "app.log" in log_names
-            assert "error.log" in log_names
-            assert len(log_names) == 2
-
-            # Multiple patterns
-            important_files = (
-                PQuery()
-                .from_(paths=temp_path)
-                .where(lambda p: matches(p, "*.log", "*.json"))
-                .files()
-            )
-
-            important_names = [f.name for f in important_files]
-            assert len(important_names) == 3  # 2 logs + 1 json
-
     def test_real_world_patterns(self):
         """Test patterns commonly used in real-world scenarios."""
         # Log files and rotated logs
