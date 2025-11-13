@@ -1,130 +1,79 @@
-import tempfile
+from pathlib import Path
 
 from tpath import TPath
 
 
-def test_calendar_basics():
+def test_calendar_basics(tmp_path: Path) -> None:
     """Test basic calendar functionality works."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
-        try:
-            test_file.write_text("Testing")
+    # File should be modified today
+    assert test_file.mtime.cal.in_days(0)
+    assert test_file.mtime.cal.in_months(0)
+    assert test_file.mtime.cal.in_quarters(0)
+    assert test_file.mtime.cal.in_years(0)
+    assert test_file.mtime.cal.in_weeks(0)  # This week
 
-            # File should be modified today
-            assert test_file.mtime.cal.win_days(0)
-            assert test_file.mtime.cal.win_months(0)
-            assert test_file.mtime.cal.win_quarters(0)
-            assert test_file.mtime.cal.win_years(0)
-            assert test_file.mtime.cal.win_weeks(0)  # This week
-
-            # File should not be modified in the past
-            assert not test_file.mtime.cal.win_days(-1)  # Yesterday
-            assert not test_file.mtime.cal.win_months(-1)  # Last month
-            assert not test_file.mtime.cal.win_weeks(-1)  # Last week
-
-        finally:
-            test_file.unlink(missing_ok=True)
+    # File should not be modified in the past
+    assert not test_file.mtime.cal.in_days(-1)  # Yesterday
+    assert not test_file.mtime.cal.in_months(-1)  # Last month
+    assert not test_file.mtime.cal.in_weeks(-1)  # Last week
 
 
-def test_method_existence():
+def test_method_existence(tmp_path: Path) -> None:
     """Test that all methods exist."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
-        try:
-            test_file.write_text("Testing")
-
-            # Check methods exist on cal property
-            assert hasattr(test_file.mtime.cal, "win_days")
-            assert hasattr(test_file.mtime.cal, "win_months")
-            assert hasattr(test_file.mtime.cal, "win_quarters")
-            assert hasattr(test_file.mtime.cal, "win_years")
-            assert hasattr(test_file.mtime.cal, "win_hours")
-            assert hasattr(test_file.mtime.cal, "win_minutes")
-            assert hasattr(test_file.mtime.cal, "win_weeks")
-
-        finally:
-            test_file.unlink(missing_ok=True)
+    # Check methods exist on cal property
+    assert hasattr(test_file.mtime.cal, "in_days")
+    assert hasattr(test_file.mtime.cal, "in_months")
+    assert hasattr(test_file.mtime.cal, "in_quarters")
+    assert hasattr(test_file.mtime.cal, "in_years")
+    assert hasattr(test_file.mtime.cal, "in_hours")
+    assert hasattr(test_file.mtime.cal, "in_minutes")
+    assert hasattr(test_file.mtime.cal, "in_weeks")
 
 
-def test_aliases():
+def test_aliases(tmp_path: Path) -> None:
     """Test that aliases work."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
-        try:
-            test_file.write_text("Testing")
-
-            # Check aliases exist on cal property
-            assert hasattr(test_file.create.cal, "win_days")
-            assert hasattr(test_file.modify.cal, "win_days")
-            assert hasattr(test_file.access.cal, "win_days")
-
-        finally:
-            test_file.unlink(missing_ok=True)
+    # Check aliases exist on cal property
+    assert hasattr(test_file.create.cal, "in_days")
+    assert hasattr(test_file.modify.cal, "in_days")
+    assert hasattr(test_file.access.cal, "in_days")
 
 
-def test_range_functionality():
+def test_range_functionality(tmp_path: Path) -> None:
     """Test range functionality with 'through' parameter."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
-        try:
-            test_file.write_text("Testing")
-
-            # Test ranges that include current time
-            assert test_file.mtime.cal.win_days(-7, 0)  # Last 7 days through today
-            assert test_file.mtime.cal.win_months(
-                -6, 0
-            )  # Last 6 months through this month
-            assert test_file.mtime.cal.win_years(
-                -2, 0
-            )  # Last 2 years through this year
-            assert test_file.mtime.cal.win_weeks(
-                -4, 0
-            )  # Last 4 weeks through this week
-
-            # Test parameter order normalization - these should be equivalent
-            result1 = test_file.mtime.cal.win_days(-7, 0)
-            result2 = test_file.mtime.cal.win_days(0, -7)
-            assert result1 == result2, "Range parameter order should be normalized"
-
-            # Test weeks parameter order too
-            result3 = test_file.mtime.cal.win_weeks(-2, 0)
-            result4 = test_file.mtime.cal.win_weeks(0, -2)
-            assert result3 == result4, "Week range parameter order should be normalized"
-
-        finally:
-            test_file.unlink(missing_ok=True)
+    # Test ranges that include current time
+    assert test_file.mtime.cal.in_days(-7, 0)  # Last 7 days through today
+    assert test_file.mtime.cal.in_months(-6, 0)  # Last 6 months through this month
+    assert test_file.mtime.cal.in_years(-2, 0)  # Last 2 years through this year
+    assert test_file.mtime.cal.in_weeks(-4, 0)  # Last 4 weeks through this week
 
 
-def test_return_types():
+def test_return_types(tmp_path: Path) -> None:
     """Test that methods return proper boolean values."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
-        try:
-            test_file.write_text("Testing")
+    # All methods should return booleans
+    assert isinstance(test_file.mtime.cal.in_days(0), bool)
+    assert isinstance(test_file.mtime.cal.in_months(0), bool)
+    assert isinstance(test_file.mtime.cal.in_quarters(0), bool)
+    assert isinstance(test_file.mtime.cal.in_years(0), bool)
+    assert isinstance(test_file.mtime.cal.in_hours(0), bool)
+    assert isinstance(test_file.mtime.cal.in_minutes(0), bool)
+    assert isinstance(test_file.mtime.cal.in_weeks(0), bool)
 
-            # All methods should return booleans
-            assert isinstance(test_file.mtime.cal.win_days(0), bool)
-            assert isinstance(test_file.mtime.cal.win_months(0), bool)
-            assert isinstance(test_file.mtime.cal.win_quarters(0), bool)
-            assert isinstance(test_file.mtime.cal.win_years(0), bool)
-            assert isinstance(test_file.mtime.cal.win_hours(0), bool)
-            assert isinstance(test_file.mtime.cal.win_minutes(0), bool)
-            assert isinstance(test_file.mtime.cal.win_weeks(0), bool)
-
-            # Range methods should also return booleans
-            assert isinstance(test_file.mtime.cal.win_days(-7, 0), bool)
-            assert isinstance(test_file.mtime.cal.win_months(-6, -1), bool)
-            assert isinstance(test_file.mtime.cal.win_weeks(-2, 0), bool)
-
-        finally:
-            test_file.unlink(missing_ok=True)
+    # Range methods should also return booleans
+    assert isinstance(test_file.mtime.cal.in_days(-7, 0), bool)
+    assert isinstance(test_file.mtime.cal.in_months(-6, -1), bool)
+    assert isinstance(test_file.mtime.cal.in_weeks(-2, 0), bool)

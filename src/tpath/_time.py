@@ -9,7 +9,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from .chronos import Age, Cal, Chronos
+from frist import Age, Cal, Chrono
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -48,13 +48,13 @@ class PathTime:
         if not self.path.exists():
             # For nonexistent files, return current time as the target
             # This means age will be 0 (file is "as old as now")
-            chronos = Chronos(self._ref_dt, self._ref_dt)
+            chronos = Chrono(target_time=self.target_dt, reference_time=self.ref_dt)
             return chronos.age
 
         # Use Chronos for consistent datetime handling
         target_datetime = self.target_dt
-        chronos = Chronos(target_datetime, self._ref_dt)
-        return chronos.age
+        chrono: Chrono = Chrono(target_time=target_datetime, reference_time=self.ref_dt)
+        return chrono.age
 
     @property
     def timestamp(self) -> float:
@@ -66,14 +66,14 @@ class PathTime:
 
         if self.time_type == "ctime":
             # Try st_birthtime first (newer), fall back to st_mtime for compatibility
-            birthtime = getattr(stat, 'st_birthtime', None)
+            birthtime = getattr(stat, "st_birthtime", None)
             return birthtime if birthtime is not None else stat.st_mtime
         elif self.time_type == "mtime":
             return stat.st_mtime
         elif self.time_type == "atime":
             return stat.st_atime
         else:
-            birthtime = getattr(stat, 'st_birthtime', None)
+            birthtime = getattr(stat, "st_birthtime", None)
             return birthtime if birthtime is not None else stat.st_mtime
 
     @property
@@ -83,7 +83,9 @@ class PathTime:
             # Lazy load the target datetime
             timestamp = self.timestamp
             if timestamp == 0:  # Handle nonexistent files
-                self._target_dt = self._ref_dt  # Return reference time for nonexistent files
+                self._target_dt = (
+                    self._ref_dt
+                )  # Return reference time for nonexistent files
             else:
                 self._target_dt = dt.datetime.fromtimestamp(timestamp)
         return self._target_dt
@@ -134,7 +136,7 @@ class PathTime:
     @property
     def cal(self):
         """Get calendar filtering functionality for this time object."""
-        return Cal(self)
+        return Cal(self.target_dt, self.ref_dt)  # Pass datetime to Cal for filtering
 
 
 __all__ = ["PathTime", "TimeType"]

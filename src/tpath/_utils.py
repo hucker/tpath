@@ -48,10 +48,6 @@ def matches(
         p = Path("/tmp/cache/temp.log")
         matches(p, "*/cache/*", full_path=True)  # True
 
-        # Use with PQuery
-        from tpath import PQuery
-        log_files = PQuery().from_("./logs").where(lambda p: matches(p, "*.log")).files()
-
     Patterns:
         *        Matches any sequence of characters
         ?        Matches any single character
@@ -82,6 +78,7 @@ def matches(
                 # On case-insensitive systems, fnmatch might match regardless of case
                 # So we need an additional exact check for the matching parts
                 import re
+
                 # Convert fnmatch pattern to regex for exact case checking
                 regex_pattern = fnmatch.translate(pattern)
                 if re.match(regex_pattern, target):

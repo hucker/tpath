@@ -1,10 +1,10 @@
 ﻿# TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
 
-TPath is a pathlib extension that provides first-class age, size, and calendar windowing functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
+TPath is a `p`athlib.Pat`h subclass that provides first-class age, size, and calendar windowing functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
 
 ## Philosophy: Property-Based File Operations
 
-**The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
+**The core goal of `TPath` is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
 
 Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**.
 
@@ -36,7 +36,7 @@ if age_days > 7 and size_mb > 100 and is_from_last_week:
     print(f"Large file from last week: {age_days:.1f} days, {size_mb:.1f} MB")
 ```
 
-### TPath Solution: Properties for Everything You Need
+### `TPath` Solution: Properties for Everything You Need
 
 ```python
 from tpath import TPath
@@ -44,7 +44,7 @@ from tpath import TPath
 # Direct, readable properties - no calculations needed
 path = TPath("logfile.txt")
 
-if path.age.days > 7 and path.size.mb > 100 and path.mtime.cal.win_days(-7, 0):
+if path.age.days > 7 and path.size.mb > 100 and path.mtime.cal.in_days(-7, 0):
     print(f"Large file from last week: {path.age.days:.1f} days, {path.size.mb:.1f} MB")
 ```
 
@@ -85,7 +85,7 @@ path = TPath("my_file.txt")
 # Direct property access - no calculations needed
 print(f"File is {path.age.days} days old")
 print(f"Size: {path.size.mb} MB")
-print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
+print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
 
 # Pattern matching
 print(f"Is Python file: {matches(path, '*.py')}")
@@ -115,8 +115,8 @@ print(f"File size: {path.size.mb} MB")
 print(f"File size: {path.size.gib} GiB")
 
 # Calendar window properties
-print(f"Modified today: {path.mtime.cal.win_days(0)}")
-print(f"Modified this week: {path.mtime.cal.win_days(-7, 0)}")
+print(f"Modified today: {path.mtime.cal.in_days(0)}")
+print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
 ```
 
 ### Shell-Style Pattern Matching
@@ -133,235 +133,6 @@ print(f"Is log file: {matches('app.log', '*.log', '*.LOG', case_sensitive=False)
 # Multiple patterns and wildcards
 matches("backup_2024.zip", "backup_202[3-4]*")       # True
 matches("report.pdf", "*.pdf", "*.docx", "*.txt")    # True
-```
-
-## PQuery - Powerful File Querying
-
-**PQuery provides a fluent, chainable API for filtering files based on age, size, and other properties.** It's designed for complex file filtering operations with readable, expressive syntax.
-
-### Basic Usage
-
-```python
-from tpath import PQuery
-
-# Simple queries - starts from current directory by default
-q = PQuery()
-
-# Find files by extension
-python_files = q.where(lambda p: p.suffix == '.py').files()
-
-# Find files by size
-large_files = q.where(lambda p: p.size.mb > 10).files()
-
-# Find files by age
-recent_files = q.where(lambda p: p.mtime.cal.win_days(-7, 0)).files()
-
-# Complex combined criteria
-old_large_logs = (q
-    .where(lambda p: p.suffix == '.log' and p.size.mb > 50 and p.age.days > 30)
-    .files())
-```
-
-### Method Chaining
-
-```python
-# Build complex queries step by step
-cleanup_files = (PQuery()
-    .from_("/var/log")              # Set starting directory
-    .recursive(True)                # Include subdirectories
-    .where(lambda p: p.suffix in ['.log', '.tmp'] and p.age.days > 30)
-    .files()
-)
-
-# Execute and process results
-total_size = sum(f.size.bytes for f in cleanup_files)
-print(f"Found {len(cleanup_files)} files totaling {total_size // 1024**2} MB")
-```
-
-### Result Transformation with select()
-
-Transform results into more useful formats:
-
-```python
-# Get file names and sizes as tuples
-file_info = (PQuery()
-    .from_("./logs")
-    .where(lambda p: p.suffix == '.log')
-    .select(lambda p: (p.name, p.size.mb))
-)
-# Returns: [('app.log', 2.3), ('error.log', 0.8), ...]
-
-# Create custom dictionaries
-file_metadata = (PQuery()
-    .from_("./documents")
-    .where(lambda p: p.suffix in ['.pdf', '.docx'])
-    .select(lambda p: {
-        'name': p.name,
-        'size_mb': p.size.mb,
-        'age_days': p.mtime.age.days
-    })
-)
-# Returns: [{'name': 'report.pdf', 'size_mb': 2.1, 'age_days': 5}, ...]
-```
-
-### Utility Methods
-
-```python
-# Check if any files match (without loading all results)
-has_large_files = (PQuery()
-    .from_("./data")
-    .where(lambda p: p.size.gb > 1)
-    .exists()
-)
-
-# Count matching files
-num_python_files = (PQuery()
-    .from_("./src")
-    .where(lambda p: p.suffix == '.py')
-    .count()
-)
-
-# Get first match
-latest_log = (PQuery()
-    .from_("./logs")
-    .where(lambda p: p.suffix == '.log')
-    .first()  # Returns TPath or None
-)
-```
-
-### Sorting and Top-K Selection
-
-```python
-# Get top 10 largest files (efficient for top-k)
-largest_files = (PQuery()
-    .from_("./data")
-    .take(10, key=lambda p: p.size.bytes)
-)
-
-# Sort all files by modification time
-all_by_time = (PQuery()
-    .from_("./logs")
-    .sort(key=lambda p: p.mtime.timestamp, reverse=True)
-)
-
-# Performance tip: use take() for top-N, sort() for complete ordering
-```
-
-### Performance Notes
-
-PQuery uses lazy evaluation - filters are only applied when you call execution methods:
-
-```python
-# Build the query (no filesystem operations yet)
-q = PQuery().from_("/large/directory").where(lambda p: p.size.gb > 5)
-
-# Only now does it scan the filesystem
-large_files = q.files()  # Execute the query
-
-# Reuse queries efficiently
-more_files = q.where(lambda p: p.suffix == '.mp4').files()
-```
-
-## Pattern Matching with matches()
-
-**TPath provides a standalone `matches()` function for shell-style pattern matching.** This function works with any path type and integrates seamlessly with PQuery for powerful file filtering.
-
-### Basic Pattern Matching
-
-```python
-from tpath import matches, TPath
-from pathlib import Path
-
-# Basic usage - works with strings, Path, or TPath objects
-matches("app.log", "*.log")              # True
-matches("readme.txt", "*.log")           # False
-matches(Path("data.csv"), "*.csv")       # True  
-matches(TPath("script.py"), "*.py")      # True
-
-# Multiple patterns (OR logic) - returns True if ANY pattern matches
-matches("report.pdf", "*.pdf", "*.docx", "*.txt")     # True
-matches("config.ini", "*.json", "*.yaml", "*.toml")   # False
-
-# Wildcards and character classes
-matches("backup_2024.zip", "backup_202[3-4]*")       # True
-matches("data_file_v1.txt", "data_*_v?.txt")          # True
-matches("config.local.ini", "*config*")               # True
-```
-
-### Case Sensitivity Control
-
-```python
-# Case-sensitive matching (default)
-matches("IMAGE.JPG", "*.jpg")                         # False
-matches("IMAGE.JPG", "*.JPG")                         # True
-
-# Case-insensitive matching  
-matches("IMAGE.JPG", "*.jpg", case_sensitive=False)   # True
-matches("README.TXT", "*readme*", case_sensitive=False) # True
-```
-
-### Full Path vs Filename Matching
-
-```python
-# Default: match against filename only
-test_path = "/home/user/projects/app/src/main.py"
-matches(test_path, "*.py")                             # True
-matches(test_path, "*app*")                           # False (filename is "main.py")
-
-# Full path matching
-matches(test_path, "*app*", full_path=True)           # True
-matches(test_path, "*/src/*", full_path=True)         # True
-matches(test_path, "*projects*", full_path=True)      # True
-```
-
-### Integration with PQuery
-
-Use `matches()` with PQuery's `.where()` method for powerful file filtering:
-
-```python
-from tpath import PQuery, matches
-
-# Find log files using pattern matching
-log_files = (PQuery()
-    .from_("./logs")
-    .where(lambda p: matches(p, "*.log", "*.LOG", case_sensitive=False))
-    .files()
-)
-
-# Find configuration files across project
-config_files = (PQuery()
-    .from_("./")
-    .recursive(True)
-    .where(lambda p: matches(p, "*.conf", "*.ini", "*config*", "*.yaml", "*.json"))
-    .files()
-)
-
-# Complex filtering: large Python files with test patterns
-test_files = (PQuery()
-    .from_("./")
-    .recursive(True)
-    .where(lambda p: matches(p, "*test*", "*_test.py", "test_*.py") and p.size.kb > 10)
-    .files()
-)
-
-# Clean up temporary files by pattern
-temp_files = (PQuery()
-    .from_("./")
-    .recursive(True)
-    .where(lambda p: matches(p, "*.tmp", "*.temp", ".*", "~*", full_path=True) and 
-                     p.age.days > 7)
-    .files()
-)
-
-# Backup candidates - important file types from recent activity
-backup_files = (PQuery()
-    .from_("/home/user/documents")
-    .recursive(True)
-    .where(lambda p: matches(p, "*.doc*", "*.pdf", "*.xls*", "*.ppt*") and
-                     p.size.mb > 1 and
-                     p.mtime.cal.win_months(-3, 0))  # Modified in last 3 months
-    .files()
-)
 ```
 
 ### Pattern Examples
@@ -389,13 +160,13 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 
 ### Supported Pattern Syntax
 
-| Pattern | Description | Example | Matches |
-|---------|-------------|---------|---------|
-| `*` | Any sequence of characters | `*.log` | `app.log`, `error.log.old` |
-| `?` | Any single character | `file?.txt` | `file1.txt`, `fileA.txt` |
-| `[seq]` | Any character in sequence | `data[0-9].csv` | `data1.csv`, `data9.csv` |
-| `[!seq]` | Any character NOT in sequence | `*[!0-9].txt` | `fileA.txt`, `file_.txt` |
-| `[a-z]` | Character range | `[A-Z]*.py` | `Main.py`, `Test.py` |
+| Pattern  | Description                   | Example         | Matches                    |
+| -------- | ----------------------------- | --------------- | -------------------------- |
+| `*`      | Any sequence of characters    | `*.log`         | `app.log`, `error.log.old` |
+| `?`      | Any single character          | `file?.txt`     | `file1.txt`, `fileA.txt`   |
+| `[seq]`  | Any character in sequence     | `data[0-9].csv` | `data1.csv`, `data9.csv`   |
+| `[!seq]` | Any character NOT in sequence | `*[!0-9].txt`   | `fileA.txt`, `file_.txt`   |
+| `[a-z]`  | Character range               | `[A-Z]*.py`     | `Main.py`, `Test.py`       |
 
 ### Performance Notes
 
@@ -408,12 +179,12 @@ matches("~document.tmp", "~*", "*.tmp", ".*")         # Temporary patterns
 
 ### Calendar Window Filtering
 
-**TPath provides intuitive calendar window filtering to check if files fall within specific time ranges.** This is perfect for finding files from "last week", "this month", "last quarter", etc.
+**TPath provides intuitive calendar window filtering to check if files fall within specific time ranges.** This is perfect for finding files from "last week", "this month", "last quarter", etc. These capabilities all derive from the [`frist` package](https://github.com/hucker/frist).
 
 ### Key Features
 
 - **Intuitive API**: Negative numbers = past, 0 = now, positive = future
-- **Window checking**: `win_*` methods clearly indicate boundary checking (not duration measurement)
+- **Window checking**: `in_*` methods clearly indicate boundary checking (not duration measurement)
 - **Mathematical conventions**: Follows standard mathematical notation for time offsets
 - **Multiple time units**: Minutes, hours, days, months, quarters, years
 
@@ -425,14 +196,14 @@ from tpath import TPath
 path = TPath("document.txt")
 
 # Single time point checks
-path.mtime.cal.win_days(0)        # Modified today
-path.mtime.cal.win_months(0)      # Modified this month  
-path.mtime.cal.win_years(0)       # Modified this year
+path.mtime.cal.in_days(0)        # Modified today
+path.mtime.cal.in_months(0)      # Modified this month  
+path.mtime.cal.in_years(0)       # Modified this year
 
 # Past time windows
-path.mtime.cal.win_days(-1)       # Modified yesterday
-path.mtime.cal.win_hours(-6)      # Modified 6 hours ago
-path.mtime.cal.win_minutes(-30)   # Modified 30 minutes ago
+path.mtime.cal.in_days(-1)       # Modified yesterday
+path.mtime.cal.in_hours(-6)      # Modified 6 hours ago
+path.mtime.cal.in_minutes(-30)   # Modified 30 minutes ago
 ```
 
 ### Range-Based Window Filtering
@@ -441,22 +212,22 @@ The real power comes from range-based filtering using `start` and `end` paramete
 
 ```python
 # Last 7 days through today
-path.mtime.cal.win_days(-7, 0)
+path.mtime.cal.in_days(-7, 0)
 
 # Last 30 days through today  
-path.mtime.cal.win_days(-30, 0)
+path.mtime.cal.in_days(-30, 0)
 
 # From 2 weeks ago through 1 week ago (excluding this week)
-path.mtime.cal.win_days(-14, -7)
+path.mtime.cal.in_days(-14, -7)
 
 # Last 6 months through this month
-path.mtime.cal.win_months(-6, 0)
+path.mtime.cal.in_months(-6, 0)
 
 # Last quarter only (excluding current quarter)
-path.mtime.cal.win_quarters(-1, -1)
+path.mtime.cal.in_quarters(-1, -1)
 
 # Last 2 years through this year
-path.mtime.cal.win_years(-2, 0)
+path.mtime.cal.in_years(-2, 0)
 ```
 
 ### Real-World Examples
@@ -469,26 +240,26 @@ from pathlib import Path
 project_dir = Path("my_project")
 recent_python_files = [
     TPath(f) for f in project_dir.rglob("*.py") 
-    if TPath(f).mtime.cal.win_days(-7, 0)
+    if TPath(f).mtime.cal.in_days(-7, 0)
 ]
 
 # Archive old log files (older than 30 days)
 log_dir = Path("/var/log")
 old_logs = [
     TPath(f) for f in log_dir.glob("*.log")
-    if not TPath(f).mtime.cal.win_days(-30, 0)  # NOT in last 30 days
+    if not TPath(f).mtime.cal.in_days(-30, 0)  # NOT in last 30 days
 ]
 
 # Find large files created this quarter
 large_recent_files = [
     TPath(f) for f in Path("/data").rglob("*")
-    if TPath(f).size.mb > 100 and TPath(f).ctime.cal.win_quarters(0)
+    if TPath(f).size.mb > 100 and TPath(f).ctime.cal.in_quarters(0)
 ]
 
 # Backup files from last month only
 backup_candidates = [
     TPath(f) for f in Path("/important").rglob("*")
-    if TPath(f).mtime.cal.win_months(-1, -1)  # Last month only
+    if TPath(f).mtime.cal.in_months(-1, -1)  # Last month only
 ]
 ```
 
@@ -500,16 +271,16 @@ TPath provides calendar filtering for all timestamp types:
 path = TPath("important_file.txt")
 
 # Creation time windows
-path.ctime.cal.win_days(-7, 0)     # Created in last 7 days
-path.create.cal.win_months(0)      # Created this month (alias)
+path.ctime.cal.in_days(-7, 0)     # Created in last 7 days
+path.create.cal.in_months(0)      # Created this month (alias)
 
 # Modification time windows  
-path.mtime.cal.win_hours(-6, 0)    # Modified in last 6 hours
-path.modify.cal.win_days(-1)       # Modified yesterday (alias)
+path.mtime.cal.in_hours(-6, 0)    # Modified in last 6 hours
+path.modify.cal.in_days(-1)       # Modified yesterday (alias)
 
 # Access time windows
-path.atime.cal.win_minutes(-30, 0) # Accessed in last 30 minutes
-path.access.cal.win_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
+path.atime.cal.in_minutes(-30, 0) # Accessed in last 30 minutes
+path.access.cal.in_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
 ```
 
 ### Precision vs. Convenience
@@ -519,7 +290,7 @@ path.access.cal.win_weeks(-2, 0)   # Accessed in last 2 weeks (alias)
 ```python
 # This checks if file was modified between "7 days ago at current time" and "now"
 # The actual span varies from ~6-7 days depending on when you run it
-path.mtime.cal.win_days(-7, 0)
+path.mtime.cal.in_days(-7, 0)
 
 # For precise duration checking, use age properties instead:
 path.age.days < 7  # Exactly less than 7 * 24 hours
@@ -576,7 +347,7 @@ if path.age.seconds > expire_time:
 - **Full pathlib compatibility**: Drop-in replacement for pathlib.Path
 - **Natural syntax**: `path.age.days` instead of complex timestamp math
 - **Shell-style pattern matching**: Standalone `matches()` function with fnmatch wildcards
-- **Calendar window filtering**: Intuitive `win_*` methods for time range checking
+- **Calendar window filtering**: Intuitive `in_*` methods for time range checking
 - **Comprehensive time units**: seconds, minutes, hours, days, weeks, months, quarters, years
 - **Multiple size units**: bytes, KB/KiB, MB/MiB, GB/GiB, TB/TiB, PB/PiB
 - **Config file integration**: Parse strings with Size.parse(), Age.parse(), Time.parse()
