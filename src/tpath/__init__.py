@@ -13,11 +13,11 @@ Examples:
     >>> Size.parse("1.5GB")
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Chuck Bass"
 
 # Core exports - always available
-from frist import Age, Cal, TimeSpan
+from frist import Age, Cal
 
 from ._core import TPath
 from ._size import Size
@@ -34,7 +34,6 @@ __all__ = [
     # Frist utilities
     "Age",
     "Cal",
-    "TimeSpan",
     # Type aliases for type hints
     "PathLike",
     "PathInput",

@@ -9,7 +9,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from frist import Age, Cal, Frist
+from frist import Age, Cal, Chrono
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -48,12 +48,12 @@ class PathTime:
         if not self.path.exists():
             # For nonexistent files, return current time as the target
             # This means age will be 0 (file is "as old as now")
-            f = Frist(target_time=self._ref_dt, reference_time=self._ref_dt)
+            f = Chrono(target_time=self._ref_dt, reference_time=self._ref_dt)
             return f.age
 
         # Use Chronos for consistent datetime handling
         target_datetime = self.target_dt
-        f = Frist(target_time=target_datetime, reference_time=self._ref_dt)
+        f = Chrono(target_time=target_datetime, reference_time=self._ref_dt)
         return f.age
 
     @property
@@ -136,7 +136,7 @@ class PathTime:
     @property
     def cal(self):
         """Get calendar filtering functionality for this time object."""
-        return Cal(self)
+        return Cal(self.target_dt, self.ref_dt)
 
 
 __all__ = ["PathTime", "TimeType"]

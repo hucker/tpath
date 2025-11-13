@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tpath"
-version = "0.2.0"
+version = "0.3.0"
 description = "Enhanced pathlib with age and size utilities using lambdas"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "MIT"}
@@ -33,7 +33,7 @@ classifiers = [
 keywords = ["pathlib", "file", "age", "size", "lambda", "utility"]
 requires-python = ">=3.10"
 dependencies = [
-    "frist>0.5.0",
+    "frist>0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -63,7 +63,14 @@ Changelog = "https://github.com/hucker/tpath/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tpath"]
-include = ["src/tpath/py.typed"]
+include = ["src/tpath/py.typed","text"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/tpath",
+    "src/tpath/py.typed",
+    "test"
+]
 
 [tool.ruff]
 line-length = 88

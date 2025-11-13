@@ -4,9 +4,9 @@ TPath is a pathlib extension that provides first-class age, size, and calendar m
 
 ## Philosophy: Property-Based File Operations
 
-**The core goal of TPath is to create a file object system that is property-based rather than providing a single entry point of timestamp from which the end user must perform all calculations.**
+**The core goal of TPath is to create a file object system that is property-based.**
 
-Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured, support for caching the os.stat_result value and support for accurate "creation time" using the birthtime values.  These details are handled behind the scenes and enable property based ages and membership, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  This has the added benefit that file iteration operating over `TPath` objects has require only a single parrameter, the path, in order to obtain ALL information related to the file of interest.
+Instead of giving you raw timestamps and forcing you to do mental math, TPath provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the Path object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured providing easy access to time information for '`create`, `access` and `modify`.  These details are handled behind the scenes and enable property based ages and membership, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  
 
 ### The Problem with Raw Timestamps
 
