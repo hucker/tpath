@@ -86,6 +86,9 @@ class PathTime:
                 self._target_dt = (
                     self._ref_dt
                 )  # Return reference time for nonexistent files
+                self._target_dt = (
+                    self._ref_dt
+                )  # Return reference time for nonexistent files
             else:
                 self._target_dt = dt.datetime.fromtimestamp(timestamp)
         return self._target_dt

@@ -1,16 +1,12 @@
-import tempfile
+from pathlib import Path
 
 from tpath import TPath
 
 
-def test_calendar_basics():
+def test_calendar_basics(tmp_path: Path) -> None:
     """Test basic calendar functionality works."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
-
-        try:
-            test_file.write_text("Testing")
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
             # File should be modified today
             assert test_file.mtime.cal.in_days(0)
@@ -28,14 +24,10 @@ def test_calendar_basics():
             test_file.unlink(missing_ok=True)
 
 
-def test_method_existence():
+def test_method_existence(tmp_path: Path) -> None:
     """Test that all methods exist."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
-
-        try:
-            test_file.write_text("Testing")
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
             # Check methods exist on cal property
             assert hasattr(test_file.mtime.cal, "in_days")
@@ -50,14 +42,10 @@ def test_method_existence():
             test_file.unlink(missing_ok=True)
 
 
-def test_aliases():
+def test_aliases(tmp_path: Path) -> None:
     """Test that aliases work."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
-
-        try:
-            test_file.write_text("Testing")
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
             # Check aliases exist on cal property
             assert hasattr(test_file.create.cal, "in_days")
@@ -68,14 +56,10 @@ def test_aliases():
             test_file.unlink(missing_ok=True)
 
 
-def test_range_functionality():
+def test_range_functionality(tmp_path: Path) -> None:
     """Test range functionality with 'through' parameter."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
-
-        try:
-            test_file.write_text("Testing")
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
             # Test ranges that include current time
             assert test_file.mtime.cal.in_days(-7, 0)  # Last 7 days through today
@@ -105,12 +89,8 @@ def test_range_functionality():
 
 def test_return_types():
     """Test that methods return proper boolean values."""
-    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-        test_file = TPath(temp_file.name)
-        temp_file.close()
-
-        try:
-            test_file.write_text("Testing")
+    test_file = TPath(tmp_path / "testfile.txt")
+    test_file.write_text("Testing")
 
             # All methods should return booleans
             assert isinstance(test_file.mtime.cal.in_days(0), bool)
