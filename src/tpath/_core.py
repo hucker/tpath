@@ -89,10 +89,22 @@ class TPath(Path):
     _stat_lock: threading.Lock
     _cached_stat_result: Any
 
-    def __init__(self, *args: Any, dir_entry: Any = None, **kwargs: Any):
+    def __init__(
+        self, *args: Any, dir_entry: Any = None, cal_policy: Any = None, **kwargs: Any
+    ):
+        """
+        Initialize TPath instance.
+
+        Args:
+            *args: Arguments for pathlib.Path.
+            dir_entry: Optional directory entry for stat caching.
+            cal_policy: Optional calendar policy for time-based calculations.
+            **kwargs: Additional keyword arguments for pathlib.Path.
+        """
         super().__init__(*args, **kwargs)
         self._base_time = getattr(self, "_base_time", datetime.now())
         self._stat_lock = getattr(self, "_stat_lock", threading.Lock())
+        self._cal_policy = cal_policy
         if dir_entry is not None:
             self._cached_is_file = dir_entry.is_file(follow_symlinks=False)
             self._cached_is_dir = dir_entry.is_dir(follow_symlinks=False)
@@ -181,37 +193,72 @@ class TPath(Path):
     @property
     def age(self) -> Age:
         """Get age property based on creation time."""
-        return PathTime(self, "ctime", self._base_time).age
+        return PathTime(
+            self,
+            "ctime",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        ).age
 
     @property
     def ctime(self) -> PathTime:
         """Get creation time property."""
-        return PathTime(self, "ctime", self._base_time)
+        return PathTime(
+            self,
+            "ctime",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def mtime(self) -> PathTime:
         """Get modification time property."""
-        return PathTime(self, "mtime", self._base_time)
+        return PathTime(
+            self,
+            "mtime",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def atime(self) -> PathTime:
         """Get access time property."""
-        return PathTime(self, "atime", self._base_time)
+        return PathTime(
+            self,
+            "atime",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def create(self) -> PathTime:
         """Get creation time property (alias for ctime)."""
-        return PathTime(self, "create", self._base_time)
+        return PathTime(
+            self,
+            "create",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def modify(self) -> PathTime:
         """Get modification time property (alias for mtime)."""
-        return PathTime(self, "modify", self._base_time)
+        return PathTime(
+            self,
+            "modify",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def access(self) -> PathTime:
         """Get access time property (alias for atime)."""
-        return PathTime(self, "access", self._base_time)
+        return PathTime(
+            self,
+            "access",
+            self._base_time,
+            cal_policy=self._cal_policy,
+        )
 
     @property
     def size(self) -> Size:

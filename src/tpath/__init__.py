@@ -17,7 +17,7 @@ __version__ = "0.3.0"
 __author__ = "Chuck Bass"
 
 # Core exports - always available
-from frist import Age, Cal
+from frist import Age, Cal, Chrono
 
 from ._core import TPath
 from ._size import Size
@@ -34,6 +34,7 @@ __all__ = [
     # Frist utilities
     "Age",
     "Cal",
+    "Chrono",
     # Type aliases for type hints
     "PathLike",
     "PathInput",

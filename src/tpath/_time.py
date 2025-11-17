@@ -9,19 +9,32 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from frist import Age, Cal, Chrono
+from frist import Age, Cal, CalendarPolicy
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
 
 class PathTime:
-    """Property class for handling different time types (ctime, mtime, atime) with age calculation."""
+    """
+    Property class for handling different time types (ctime, mtime, atime) with age calculation.
 
-    def __init__(self, path: Path, time_type: TimeType, ref_dt: dt.datetime):
+    NOTE: Calendar policy can be used for business based calendar filtering for fiscal calendars, business days, etc.
+          The default is None which uses M-F, 9-5, workweek with fiscal year starting on Jan 1.
+
+    """
+
+    def __init__(
+        self,
+        path: Path,
+        time_type: TimeType,
+        ref_dt: dt.datetime,
+        cal_policy: CalendarPolicy | None = None,
+    ) -> None:
         self.path = path
         # Normalize time_type aliases to standard names
         self.time_type = self._normalize_time_type(time_type)
-        self._ref_dt = ref_dt
+        self._ref_dt: dt.datetime = ref_dt
+        self._cal_policy: CalendarPolicy | None = cal_policy
         self._target_dt: dt.datetime | None = None  # Lazy loading
 
     @staticmethod
@@ -48,13 +61,27 @@ class PathTime:
         if not self.path.exists():
             # For nonexistent files, return current time as the target
             # This means age will be 0 (file is "as old as now")
-            f = Chrono(target_time=self._ref_dt, reference_time=self._ref_dt)
-            return f.age
+            return Age(
+                start_time=self._ref_dt,
+                end_time=self._ref_dt,
+                cal_policy=self._cal_policy,
+            )
 
         # Use Chronos for consistent datetime handling
-        target_datetime = self.target_dt
-        f = Chrono(target_time=target_datetime, reference_time=self._ref_dt)
-        return f.age
+        return Age(
+            start_time=self.target_dt,
+            end_time=self._ref_dt,
+            cal_policy=self._cal_policy,
+        )
+
+    @property
+    def cal(self) -> Cal:
+        """Get calendar filtering functionality for this time object."""
+        return Cal(
+            self.target_dt,
+            self.ref_dt,
+            self._cal_policy,
+        )
 
     @property
     def timestamp(self) -> float:
@@ -83,12 +110,7 @@ class PathTime:
             # Lazy load the target datetime
             timestamp = self.timestamp
             if timestamp == 0:  # Handle nonexistent files
-                self._target_dt = (
-                    self._ref_dt
-                )  # Return reference time for nonexistent files
-                self._target_dt = (
-                    self._ref_dt
-                )  # Return reference time for nonexistent files
+                self._target_dt = self._ref_dt
             else:
                 self._target_dt = dt.datetime.fromtimestamp(timestamp)
         return self._target_dt
@@ -135,11 +157,6 @@ class PathTime:
                 continue
 
         raise ValueError(f"Unable to parse time string: {time_str}")
-
-    @property
-    def cal(self):
-        """Get calendar filtering functionality for this time object."""
-        return Cal(self.target_dt, self.ref_dt)
 
 
 __all__ = ["PathTime", "TimeType"]

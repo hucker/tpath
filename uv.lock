@@ -115,11 +115,11 @@ wheels = [
 
 [[package]]
 name = "frist"
-version = "0.6.0"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f5/4b/e8d093d995c138125fad96e726b206660ab0b74db3549223d0e141cb7db8/frist-0.6.0.tar.gz", hash = "sha256:0c8c12951ce1a66440b59b6c233786ff69138af1c86e3d157450c63ea41cb16d", size = 19906 }
+sdist = { url = "https://files.pythonhosted.org/packages/35/00/8b0718373b075e7b6c72bab0846d557325aaa72fe275e99dca01c8619e0a/frist-0.10.0.tar.gz", hash = "sha256:8fa90b8bcf2ea80086c2e5985f37ce5cbedfb143fcd93f80cc87f58ad3bc9016", size = 38348 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/8c/d30551557ce53615ab4304dac31774490ba3bcbc10c5bd99ff9b763600ee/frist-0.6.0-py3-none-any.whl", hash = "sha256:5fec66e25e091fd4ed7a3945a1908ff320269e2f7f627ac316c9b9e7609f4923", size = 9571 },
+    { url = "https://files.pythonhosted.org/packages/70/d4/3bd9508f8ae94da3f9ed08db2ec796243ebe829ed67b8bc2a5bc38286581/frist-0.10.0-py3-none-any.whl", hash = "sha256:6624c400e4eb6837a9bce4a6fcc4479222d94aae8e775bb698cf695d8c595555", size = 19066 },
 ]
 
 [[package]]
@@ -410,7 +410,7 @@ wheels = [
 
 [[package]]
 name = "tpath"
-version = "0.1.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "frist" },
@@ -444,7 +444,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "frist", specifier = ">0.5.0" },
+    { name = "frist", specifier = ">0.9.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "mypy", marker = "extra == 'lint'", specifier = ">=1.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0" },

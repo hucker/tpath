@@ -12,7 +12,7 @@ from tpath import Age, TPath
 
 def test_age_properties():
     """Test Age class properties."""
-    print("Testing Age properties...")
+    ("Testing Age properties...")
 
     # Create a test file
     test_file = TPath("test_age_file.txt")
@@ -37,15 +37,11 @@ def test_age_properties():
         assert age.days == pytest.approx(age.hours / 24)
         assert age.weeks == pytest.approx(age.days / 7)
 
-        print(f"Age in seconds: {age.seconds:.2f}")
-        print(f"Age in minutes: {age.minutes:.6f}")
-        print(f"Age in hours: {age.hours:.8f}")
-        print(f"Age in days: {age.days:.10f}")
-        print(f"Age in weeks: {age.weeks:.10f}")
-        print(f"Age in months: {age.months:.10f}")
-        print(f"Age in years: {age.years:.10f}")
-
-        print("✅ Age properties tests passed")
+        (f"Age in seconds: {age.seconds:.2f}")
+        (f"Age in minutes: {age.minutes:.6f}")
+        (f"Age in hours: {age.hours:.8f}")
+        (f"Age in days: {age.days:.10f}")
+        (f"Age in weeks: {age.weeks:.10f}")
 
     finally:
         # Clean up
@@ -55,7 +51,6 @@ def test_age_properties():
 
 def test_age_with_custom_base_time():
     """Test Age calculations with custom base time."""
-    print("Testing Age with custom base time...")
 
     # Create test file
     test_file = TPath("test_age_base_file.txt")
@@ -64,15 +59,15 @@ def test_age_with_custom_base_time():
     try:
         # Test with yesterday as base time
         yesterday = dt.datetime.now() - dt.timedelta(days=1)
-        path_with_base = TPath("test_age_base_file.txt").with_base_time(base_time=yesterday)
+        path_with_base = TPath("test_age_base_file.txt").with_base_time(
+            base_time=yesterday
+        )
 
         age = path_with_base.age
         assert isinstance(age, Age)
 
         # The file should appear "older" when base time is in the past
         assert age.days < 0  # Negative because file is newer than base time
-
-        print(f"Age with yesterday base: {age.days:.2f} days")
 
         # Test with future base time
         tomorrow = dt.datetime.now() + dt.timedelta(days=1)
@@ -82,9 +77,6 @@ def test_age_with_custom_base_time():
         # File should appear "older" (more positive) with future base time
         assert future_age.days > age.days
 
-        print(f"Age with tomorrow base: {future_age.days:.2f} days")
-        print("✅ Custom base time tests passed")
-
     finally:
         # Clean up
         if test_file.exists():
@@ -93,7 +85,6 @@ def test_age_with_custom_base_time():
 
 def test_age_time_progression():
     """Test that age increases over time."""
-    print("Testing age time progression...")
 
     # Create test file
     test_file = TPath("test_age_progression.txt")
@@ -113,11 +104,6 @@ def test_age_time_progression():
         # Age should have increased
         assert later_age > initial_age
 
-        print(f"Initial age: {initial_age:.3f} seconds")
-        print(f"Later age: {later_age:.3f} seconds")
-        print(f"Difference: {later_age - initial_age:.3f} seconds")
-        print("✅ Time progression tests passed")
-
     finally:
         # Clean up
         if test_file.exists():
@@ -126,7 +112,6 @@ def test_age_time_progression():
 
 def test_different_time_types():
     """Test age calculation for different time types (ctime, mtime, atime)."""
-    print("Testing different time types...")
 
     # Create test file
     test_file = TPath("test_time_types.txt")
@@ -141,12 +126,6 @@ def test_different_time_types():
         assert isinstance(ctime_age, Age)
         assert isinstance(mtime_age, Age)
         assert isinstance(atime_age, Age)
-
-        print(f"Creation time age: {ctime_age.days:.10f} days")
-        print(f"Modification time age: {mtime_age.days:.10f} days")
-        print(f"Access time age: {atime_age.days:.10f} days")
-
-        print("✅ Different time types tests passed")
 
     finally:
         # Clean up

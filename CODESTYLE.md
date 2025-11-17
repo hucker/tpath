@@ -35,7 +35,9 @@
 - Use Google-style docstrings for all modules, classes, and functions.
 - All test functions must have at least a 1-line docstring describing the test purpose.
 - Use the AAA (Arrange/Act/Assert) structure for setting up tests:
-  - Add `# Arrange`, `# Act`, and `# Assert` comments for non-trivial tests or fixtures.
+- Add `# Arrange`, `# Act`, and `# Assert` comments for non-trivial tests or fixtures.
+- Add type annotations for fixture parameters.
+- Add type annotations for variables declared in src code and test code, parameterizations and fixtures!
 
 ```python
       def test_code():
@@ -47,7 +49,7 @@
             expected_sum = 6
 
             # Assert
-            assert actual_sum = expected_sum
+            assert actual_sum == expected_sum
 ```
 
 - For fixtures, include an `# Arrange` comment.

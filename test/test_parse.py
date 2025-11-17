@@ -13,7 +13,11 @@ from tpath import Age, PathTime, Size
 
 @pytest.fixture
 def size_test_cases():
-    """Fixture providing test cases for Size.parse."""
+    """
+    Fixture providing test cases for Size.parse.
+
+    Returns a list of tuples with input strings and expected byte values.
+    """
     return [
         # (input_string, expected_bytes)
         ("100", 100),
@@ -33,7 +37,11 @@ def size_test_cases():
 
 @pytest.fixture
 def age_test_cases():
-    """Fixture providing test cases for Age.parse."""
+    """
+    Fixture providing test cases for Age.parse.
+
+    Returns a list of tuples with input strings and expected seconds values.
+    """
     return [
         # (input_string, expected_seconds)
         ("30", 30.0),
@@ -64,7 +72,11 @@ def age_test_cases():
 
 @pytest.fixture
 def time_test_cases():
-    """Fixture providing test cases for PathTime.parse."""
+    """
+    Fixture providing test cases for PathTime.parse.
+
+    Returns a list of tuples with input strings and expected date/time components.
+    """
     return [
         # (input_string, expected_year, expected_month, expected_day, expected_hour, expected_minute)
         ("2023-12-25", 2023, 12, 25, 0, 0),
@@ -99,29 +111,48 @@ def config_examples():
     }
 
 
-def test_size_parse_cases(size_test_cases):
+def test_size_parse_cases(size_test_cases: list[tuple[str, int]]) -> None:
+    """
+    Test Size.parse with various input formats.
+
+    Args:
+        size_test_cases (list[tuple[str, int]]): List of (input, expected bytes) pairs.
+    """
+    # Act & Assert
     """Test Size.parse with various input formats."""
     for input_str, expected_bytes in size_test_cases:
         result = Size.parse(input_str)
-        assert (
-            result == expected_bytes
-        ), f"Failed for input '{input_str}': expected {expected_bytes}, got {result}"
+        assert result == expected_bytes, (
+            f"Failed for input '{input_str}': expected {expected_bytes}, got {result}"
+        )
 
 
-def test_size_parse_case_insensitive():
+def test_size_parse_case_insensitive() -> None:
+    """
+    Test that Size.parse is case insensitive.
+    """
+    # Act & Assert
     """Test that Size.parse is case insensitive."""
     assert Size.parse("1kb") == Size.parse("1KB")
     assert Size.parse("1mib") == Size.parse("1MiB")
     assert Size.parse("2.5gb") == Size.parse("2.5GB")
 
 
-def test_size_parse_whitespace_handling():
+def test_size_parse_whitespace_handling() -> None:
+    """
+    Test that Size.parse handles whitespace correctly.
+    """
+    # Act & Assert
     """Test that Size.parse handles whitespace correctly."""
     assert Size.parse(" 1MB ") == Size.parse("1MB")
     assert Size.parse("2.5 GB") == Size.parse("2.5GB")
 
 
-def test_size_parse_invalid_input():
+def test_size_parse_invalid_input() -> None:
+    """
+    Test that Size.parse raises ValueError for invalid input.
+    """
+    # Act & Assert
     """Test that Size.parse raises ValueError for invalid input."""
     with pytest.raises(ValueError, match="Invalid size format"):
         Size.parse("invalid")
@@ -130,28 +161,47 @@ def test_size_parse_invalid_input():
         Size.parse("1XB")
 
 
-def test_age_parse_cases(age_test_cases):
+def test_age_parse_cases(age_test_cases: list[tuple[str, float]]) -> None:
+    """
+    Test Age.parse with various input formats.
+
+    Args:
+        age_test_cases (list[tuple[str, float]]): List of (input, expected seconds) pairs.
+    """
+    # Act & Assert
     """Test Age.parse with various input formats."""
     for input_str, expected_seconds in age_test_cases:
         result = Age.parse(input_str)
-        assert (
-            result == expected_seconds
-        ), f"Failed for input '{input_str}': expected {expected_seconds}, got {result}"
+        assert result == expected_seconds, (
+            f"Failed for input '{input_str}': expected {expected_seconds}, got {result}"
+        )
 
 
-def test_age_parse_decimal_values():
+def test_age_parse_decimal_values() -> None:
+    """
+    Test Age.parse with decimal values.
+    """
+    # Act & Assert
     """Test Age.parse with decimal values."""
     assert Age.parse("2.5h") == 9000.0  # 2.5 hours = 9000 seconds
     assert Age.parse("1.5d") == 129600.0  # 1.5 days = 129600 seconds
 
 
-def test_age_parse_case_insensitive():
+def test_age_parse_case_insensitive() -> None:
+    """
+    Test that Age.parse is case insensitive.
+    """
+    # Act & Assert
     """Test that Age.parse is case insensitive."""
     assert Age.parse("1H") == Age.parse("1h")
     assert Age.parse("2DAYS") == Age.parse("2days")
 
 
-def test_age_parse_invalid_input():
+def test_age_parse_invalid_input() -> None:
+    """
+    Test that Age.parse raises ValueError for invalid input.
+    """
+    # Act & Assert
     """Test that Age.parse raises ValueError for invalid input."""
     with pytest.raises(ValueError, match="Invalid age format"):
         Age.parse("invalid")
@@ -160,7 +210,16 @@ def test_age_parse_invalid_input():
         Age.parse("1x")
 
 
-def test_time_parse_cases(time_test_cases):
+def test_time_parse_cases(
+    time_test_cases: list[tuple[str, int, int, int, int, int]],
+) -> None:
+    """
+    Test PathTime.parse with various date formats.
+
+    Args:
+        time_test_cases (list[tuple[str, int, int, int, int, int]]): List of (input, year, month, day, hour, minute) tuples.
+    """
+    # Act & Assert
     """Test PathTime.parse with various date formats."""
     for (
         input_str,
@@ -178,7 +237,11 @@ def test_time_parse_cases(time_test_cases):
         assert result.minute == expected_minute, f"Minute mismatch for '{input_str}'"
 
 
-def test_time_parse_unix_timestamp():
+def test_time_parse_unix_timestamp() -> None:
+    """
+    Test PathTime.parse with Unix timestamps.
+    """
+    # Act & Assert
     """Test PathTime.parse with Unix timestamps."""
     result = PathTime.parse("1640995200")  # Dec 31, 2021 16:00:00 local time
     assert result.year == 2021
@@ -186,7 +249,11 @@ def test_time_parse_unix_timestamp():
     assert result.day == 31
 
 
-def test_time_parse_invalid_input():
+def test_time_parse_invalid_input() -> None:
+    """
+    Test that PathTime.parse raises ValueError for invalid input.
+    """
+    # Act & Assert
     """Test that PathTime.parse raises ValueError for invalid input."""
     with pytest.raises(ValueError, match="Unable to parse time string"):
         PathTime.parse("invalid-date")
@@ -195,7 +262,14 @@ def test_time_parse_invalid_input():
         PathTime.parse("2023-13-40")  # Invalid month/day
 
 
-def test_cache_config_parsing(config_examples):
+def test_cache_config_parsing(config_examples: dict[str, dict[str, str]]) -> None:
+    """
+    Test parsing cache configuration values.
+
+    Args:
+        config_examples (dict): Example config dictionary.
+    """
+    # Act & Assert
     """Test parsing cache configuration values."""
     cache_config = config_examples["cache_settings"]
 
@@ -208,7 +282,14 @@ def test_cache_config_parsing(config_examples):
     assert temp_limit == 1_000_000_000  # 1GB
 
 
-def test_backup_config_parsing(config_examples):
+def test_backup_config_parsing(config_examples: dict[str, dict[str, str]]) -> None:
+    """
+    Test parsing backup configuration values.
+
+    Args:
+        config_examples (dict): Example config dictionary.
+    """
+    # Act & Assert
     """Test parsing backup configuration values."""
     backup_config = config_examples["backup_settings"]
 
@@ -221,7 +302,14 @@ def test_backup_config_parsing(config_examples):
     assert cleanup_interval == 7200.0  # 2 hours in seconds
 
 
-def test_log_config_parsing(config_examples):
+def test_log_config_parsing(config_examples: dict[str, dict[str, str]]) -> None:
+    """
+    Test parsing log configuration values.
+
+    Args:
+        config_examples (dict): Example config dictionary.
+    """
+    # Act & Assert
     """Test parsing log configuration values."""
     log_config = config_examples["log_settings"]
 
@@ -234,7 +322,11 @@ def test_log_config_parsing(config_examples):
     assert archive_after == 2_630_016.0  # 1 month in seconds
 
 
-def test_mixed_config_scenarios():
+def test_mixed_config_scenarios() -> None:
+    """
+    Test various real-world config scenarios.
+    """
+    # Act & Assert
     """Test various real-world config scenarios."""
     scenarios = [
         # File cleanup scenarios

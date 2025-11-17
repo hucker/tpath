@@ -12,7 +12,11 @@ class TestMatchesFunction:
     """Tests for the standalone matches() function."""
 
     def test_basic_pattern_matching(self):
-        """Test basic pattern matching functionality."""
+        """
+        Test basic pattern matching functionality.
+
+        Verifies that matches() works for simple patterns and OR logic.
+        """
         # Basic patterns
         assert matches("app.log", "*.log") is True
         assert matches("backup.zip", "*.log") is False
@@ -24,7 +28,11 @@ class TestMatchesFunction:
         assert matches("image.jpg", "*.pdf", "*.docx") is False
 
     def test_wildcard_patterns(self):
-        """Test various wildcard patterns."""
+        """
+        Test various wildcard patterns.
+
+        Verifies correct handling of * and ? wildcards and character classes.
+        """
         # * wildcard
         assert matches("backup_2024.zip", "backup_*") is True
         assert matches("backup_2024.zip", "*2024*") is True
@@ -39,7 +47,11 @@ class TestMatchesFunction:
         assert matches("data_2025.csv", "*202[3-4]*") is False
 
     def test_case_sensitivity(self):
-        """Test case-sensitive and case-insensitive matching."""
+        """
+        Test case-sensitive and case-insensitive matching.
+
+        Verifies matches() respects the case_sensitive argument.
+        """
         # Case-sensitive (default)
         assert matches("IMAGE.JPG", "*.jpg") is False
         assert matches("image.jpg", "*.jpg") is True
@@ -50,7 +62,11 @@ class TestMatchesFunction:
         assert matches("CONFIG.INI", "*config*", case_sensitive=False) is True
 
     def test_full_path_matching(self):
-        """Test matching against full path vs filename."""
+        """
+        Test matching against full path vs filename.
+
+        Verifies matches() can match on full path or just filename.
+        """
         # Create a temporary file path
         with tempfile.NamedTemporaryFile(suffix=".log") as tmp:
             tmp_path = Path(tmp.name)
@@ -64,7 +80,11 @@ class TestMatchesFunction:
             assert matches(tmp_path, "*/nonexistent/*", full_path=True) is False
 
     def test_different_path_types(self):
-        """Test that function works with different path types."""
+        """
+        Test that function works with different path types.
+
+        Verifies matches() works for str, Path, and TPath inputs.
+        """
         # String path
         assert matches("app.log", "*.log") is True
 
@@ -77,7 +97,11 @@ class TestMatchesFunction:
         assert matches(tpath_obj, "*.zip") is True
 
     def test_empty_patterns_error(self):
-        """Test that providing no patterns raises an error."""
+        """
+        Test that providing no patterns raises an error.
+
+        Verifies matches() raises ValueError if no patterns are provided.
+        """
         with pytest.raises(ValueError, match="At least one pattern must be provided"):
             matches("app.log")
 

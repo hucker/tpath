@@ -9,48 +9,37 @@ from tpath import Size, TPath
 
 
 def test_integration_basic_workflow():
-    """Test a complete basic workflow with TPath."""
-    print("Testing basic integration workflow...")
+    """
+    Test a complete basic workflow with TPath.
 
-    # Create a test file
+    Verifies file creation, property access, and size/age/time calculations in an integration scenario.
+    """
+
+    # Arrange
     test_file = TPath("integration_test.txt")
     content = "This is an integration test file for TPath functionality."
     test_file.write_text(content)
 
     try:
-        # Test all main functionality together
-        assert test_file.exists()
-        assert test_file.is_file()
-
-        # Test size functionality
+        # Act
         size = test_file.size
-        assert size.bytes == len(content.encode("utf-8"))
-        assert size.kb == size.bytes / 1000
-        assert size.kib == size.bytes / 1024
-
-        # Test age functionality
         age = test_file.age
-        # Allow for very small negative values due to clock precision
-        assert age.seconds >= -0.01  # Relaxed to handle clock precision issues
-        assert age.minutes >= -0.01 / 60
-        assert age.days >= -0.01 / 86400
-
-        # Test time properties
         ctime = test_file.ctime
         mtime = test_file.mtime
         atime = test_file.atime
 
-        # Allow for small negative values due to clock precision
+        # Assert
+        assert test_file.exists()
+        assert test_file.is_file()
+        assert size.bytes == len(content.encode("utf-8"))
+        assert size.kb == size.bytes / 1000
+        assert size.kib == size.bytes / 1024
+        assert age.seconds >= -0.01  # Relaxed to handle clock precision issues
+        assert age.minutes >= -0.01 / 60
+        assert age.days >= -0.01 / 86400
         assert ctime.age.seconds >= -0.01
         assert mtime.age.seconds >= -0.01
         assert atime.age.seconds >= -0.01
-
-        print(f"✅ File: {test_file}")
-        print(f"✅ Size: {size.bytes} bytes ({size.kb:.3f} KB)")
-        print(f"✅ Age: {age.seconds:.3f} seconds")
-        print(f"✅ Created: {ctime.target_dt}")
-
-        print("✅ Basic integration workflow tests passed")
 
     finally:
         # Clean up
@@ -60,7 +49,6 @@ def test_integration_basic_workflow():
 
 def test_integration_file_operations():
     """Test integration with file operations."""
-    print("Testing file operations integration...")
 
     # Test with different file types and operations
     test_files = []
@@ -89,13 +77,6 @@ def test_integration_file_operations():
 
         assert len(medium_files) >= 1
 
-        print(f"✅ Created {len(test_files)} test files")
-        print(f"✅ Found {len(large_files)} large files")
-        print(f"✅ Found {len(recent_files)} recent files")
-        print(f"✅ Found {len(medium_files)} medium+ files")
-
-        print("✅ File operations integration tests passed")
-
     finally:
         # Clean up
         for file_path in test_files:
@@ -105,7 +86,6 @@ def test_integration_file_operations():
 
 def test_integration_pathlib_compatibility():
     """Test integration with pathlib operations."""
-    print("Testing pathlib compatibility integration...")
 
     # Create a test directory structure
     test_dir = TPath("test_integration_dir")
@@ -143,14 +123,6 @@ def test_integration_pathlib_compatibility():
         assert len(txt_files) == 1
         assert TPath(txt_files[0]).suffix == ".txt"
 
-        print(f"✅ Directory: {test_dir}")
-        print(f"✅ Files found: {len(files_info)}")
-        for info in files_info:
-            print(f"   {info['name']}: {info['size']} bytes, {info['age']:.3f}s old")
-        print(f"✅ TXT files: {len(txt_files)}")
-
-        print("✅ Pathlib compatibility integration tests passed")
-
     finally:
         # Clean up
         if test_dir.exists():
@@ -162,7 +134,6 @@ def test_integration_pathlib_compatibility():
 
 def test_integration_custom_base_time():
     """Test integration with custom base time scenarios."""
-    print("Testing custom base time integration...")
 
     # Test scenario: file management with custom reference time
     reference_time = dt.datetime.now() - dt.timedelta(hours=12)
