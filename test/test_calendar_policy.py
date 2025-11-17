@@ -19,11 +19,46 @@ from tpath import TPath
 @pytest.mark.parametrize(
     "filename, atime, expected_fiscal_year, expected_fiscal_quarter, expected_is_business_day, expected_is_holiday",
     [
-        ("file_2025-01-01.txt", datetime(2025, 1, 1, 12, 0, 0), 2024, 4, False, True),  # Jan 1, 2025: New Year's Day, holiday, Q4
-        ("file_2025-04-07.txt", datetime(2025, 4, 7, 12, 0, 0), 2025, 1, True, False),  # Apr 7, 2025: Monday, Q1, business day
-        ("file_2025-04-11.txt", datetime(2025, 4, 11, 12, 0, 0), 2025, 1, False, False), # Apr 11, 2025: Friday, not business day
-        ("file_2025-07-01.txt", datetime(2025, 7, 1, 12, 0, 0), 2025, 2, True, False),  # Jul 1, 2025: Tuesday, Q2, business day
-        ("file_2025-12-31.txt", datetime(2025, 12, 31, 12, 0, 0), 2025, 3, True, False),  # Dec 31, 2025: Wednesday, Q3, business day
+        (
+            "file_2025-01-01.txt",
+            datetime(2025, 1, 1, 12, 0, 0),
+            2024,
+            4,
+            False,
+            True,
+        ),  # Jan 1, 2025: New Year's Day, holiday, Q4
+        (
+            "file_2025-04-07.txt",
+            datetime(2025, 4, 7, 12, 0, 0),
+            2025,
+            1,
+            True,
+            False,
+        ),  # Apr 7, 2025: Monday, Q1, business day
+        (
+            "file_2025-04-11.txt",
+            datetime(2025, 4, 11, 12, 0, 0),
+            2025,
+            1,
+            False,
+            False,
+        ),  # Apr 11, 2025: Friday, not business day
+        (
+            "file_2025-07-01.txt",
+            datetime(2025, 7, 1, 12, 0, 0),
+            2025,
+            2,
+            True,
+            False,
+        ),  # Jul 1, 2025: Tuesday, Q2, business day
+        (
+            "file_2025-12-31.txt",
+            datetime(2025, 12, 31, 12, 0, 0),
+            2025,
+            3,
+            True,
+            False,
+        ),  # Dec 31, 2025: Wednesday, Q3, business day
     ],
 )
 def test_calendar_policy_integration(
