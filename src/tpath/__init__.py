@@ -13,7 +13,7 @@ Examples:
     >>> Size.parse("1.5GB")
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 __author__ = "Chuck Bass"
 
 # Core exports - always available
