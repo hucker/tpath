@@ -290,7 +290,7 @@ class TPath(Path):
         if platform.system() == "Windows":
             # Check if file exists first
             return os.access(self, os.F_OK)
-        return os.access(self, os.X_OK)
+        return os.access(self, os.X_OK)  # pragma: no cover # Testing on windows now
 
     @property
     def read_only(self) -> bool:

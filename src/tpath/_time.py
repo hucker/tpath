@@ -9,7 +9,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from frist import Age, Cal, CalendarPolicy
+from frist import Age, Biz, Cal, CalendarPolicy
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -48,7 +48,7 @@ class PathTime:
             return "atime"
         else:
             # This should never happen with proper typing, but provide a fallback
-            return "ctime"
+            return "ctime"  # pragma: no cover
 
     def _get_stat(self):
         """Get stat result."""
@@ -64,14 +64,12 @@ class PathTime:
             return Age(
                 start_time=self._ref_dt,
                 end_time=self._ref_dt,
-                cal_policy=self._cal_policy,
             )
 
         # Use Chronos for consistent datetime handling
         return Age(
             start_time=self.target_dt,
             end_time=self._ref_dt,
-            cal_policy=self._cal_policy,
         )
 
     @property
@@ -80,7 +78,15 @@ class PathTime:
         return Cal(
             self.target_dt,
             self.ref_dt,
-            self._cal_policy,
+        )
+
+    @property
+    def biz(self) -> Biz:
+        """Get business logic filtering functionality for this time object."""
+        return Biz(
+            target_time=self.target_dt,
+            ref_time=self.ref_dt,
+            policy=self._cal_policy,
         )
 
     @property
@@ -99,7 +105,8 @@ class PathTime:
             return stat.st_mtime
         elif self.time_type == "atime":
             return stat.st_atime
-        else:
+        else:  # pragma: no cover
+            # Should never happen??
             birthtime = getattr(stat, "st_birthtime", None)
             return birthtime if birthtime is not None else stat.st_mtime
 

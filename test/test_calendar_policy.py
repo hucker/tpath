@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from frist import CalendarPolicy
+from frist import Biz, CalendarPolicy
 
 from tpath import TPath
 
@@ -98,13 +98,14 @@ def test_calendar_policy_integration(
     os.utime(file_path, (atime_ts, atime_ts))
 
     # Act
-    tpath_file = TPath(file_path, cal_policy=custom_policy)
-    cal = tpath_file.atime.cal
+    tpath_file: TPath = TPath(file_path, cal_policy=custom_policy)
 
-    actual_fiscal_year = cal.fiscal_year
-    actual_fiscal_quarter = cal.fiscal_quarter
-    actual_is_business_day = custom_policy.is_business_day(cal.target_dt)
-    actual_is_holiday = cal.holiday
+    biz: Biz = tpath_file.atime.biz
+
+    actual_fiscal_year: int = biz.fiscal_year
+    actual_fiscal_quarter: int = biz.fiscal_quarter
+    actual_is_business_day: bool = custom_policy.is_business_day(biz.target_time)
+    actual_is_holiday: bool = biz.holiday
 
     # Assert
     assert actual_fiscal_year == expected_fiscal_year, (

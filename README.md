@@ -1,4 +1,4 @@
-﻿ TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
+﻿# TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
 
 TPath is a pathlib extension that provides first-class age, size, and calendar membership functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
 
@@ -6,7 +6,7 @@ TPath is a pathlib extension that provides first-class age, size, and calendar m
 
 **The core goal of TPath is to create a file object system that is property-based.**
 
-Instead of giving you raw timestamps and forcing you to do math related using the low level datastructures provided by the OS, `TPath` provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the `Path` object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured providing easy access to time information for '`create`, `access` and `modify`.  These details are handled behind the scenes and enable property based ages and membership, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  The calendar and age functions are provided by a package called `frist` which has many more features that the simple ones shown here.
+Instead of giving you raw timestamps and forcing you to do math related using the low level datastructures provided by the OS, `TPath` provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the `Path` object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured providing easy access to time information for '`create`, `access` and `modify`.  These details are handled behind the scenes and enable property based ages and calendar membership and business dates, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  The `calendar`,`age` and `business` functions are provided by a package called `frist` which has many property based features related to dates.
 
 ### The Problem with Raw Timestamps
 
@@ -84,7 +84,7 @@ from tpath import TPath
 
 # Simple case: One line instead of a dozen
 old_files = [f for f in Path("/var/log").rglob("*") 
-             if TPath(f).age.days > 7 and TPath(f).size.mb > 10]
+             if TPath(f).access.age.days > 7 and TPath(f).size.mb > 10]
 ```
 
 No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.
@@ -98,7 +98,7 @@ from tpath import TPath, matches
 path = TPath("my_file.txt")
 
 # Direct property access - no calculations needed
-print(f"File is {path.age.days} days old")
+print(f"File is {path.create.age.days} days old")
 print(f"Size: {path.size.mb} MB")
 print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
 
@@ -155,7 +155,7 @@ backup_files = [f for f in Path("./backups").rglob("*") if matches(f, "backup_20
 
 Each `TPath` object provides direct access to the following time-based properties:
 
-- **`ctime`**: Creation time of the file.
+- **`ctime`**: Creation time of the file (using birthtime when possible).
 - **`mtime`**: Last modification time of the file.
 - **`atime`**: Last access time of the file.
 
@@ -198,10 +198,6 @@ print(f"File age in seconds: {path.age.seconds}")
 print(f"File age in weeks: {path.age.weeks}")
 ```
 
-### Why Property-Based Design?
-
-By focusing on properties rather than calculations, `TPath` reduces cognitive load and makes your code more readable and maintainable. You no longer need to write complex logic to calculate file ages or determine calendar memberships—everything is available as a property.
-
 ### Summary
 
 `TPath`, powered by Frist, provides a property-based interface that simplifies file operations while offering rich, expressive features. Whether you're working with creation, modification, or access times, `TPath` ensures that all the power of Frist's advanced time and calendar operations is at your fingertips.
@@ -237,6 +233,17 @@ MIT License - see LICENSE file for details.
 
 ---
 
-## Latest Updates
+### Status
 
-- November 17, 2025: Added calendar policy support from `frist` library to allow for business calendar support.
+[![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-blue?logo=python&logoColor=white)](https://www.python.org/) [![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/hucker/frist/actions) [![Pytest](https://img.shields.io/badge/pytest-100%25%20pass%20%7C%2092%20tests-blue?logo=pytest&logoColor=white)](https://docs.pytest.org/en/stable/) [![Ruff](https://img.shields.io/badge/ruff-100%25-brightgreen?logo=ruff&logoColor=white)](https://github.com/charliermarsh/ruff)
+
+### Pytest (100% pass/96% coverage)
+
+```text
+src\tpath\__init__.py                           8      0      0      0   100%
+src\tpath\_constants.py                        17      0      0      0   100%
+src\tpath\_core.py                            151     12     70      7    90%
+src\tpath\_size.py                             57      0     32      0   100%
+src\tpath\_time.py                             69      1     36      1    98%
+src\tpath\_utils.py                            25      0     14      1    97%
+```
