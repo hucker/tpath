@@ -77,20 +77,22 @@ def test_range_functionality(tmp_path: Path) -> None:
 
     # Act & Assert
     # Test ranges that include current time
-    assert test_file.mtime.cal.in_days(-7, 0)  # Last 7 days through today
-    assert test_file.mtime.cal.in_months(-6, 0)  # Last 6 months through this month
-    assert test_file.mtime.cal.in_years(-2, 0)  # Last 2 years through this year
-    assert test_file.mtime.cal.in_weeks(-4, 0)  # Last 4 weeks through this week
+    # frist uses half-open intervals [start, end) so to include the
+    # current unit (offset 0) we must pass end=1 (exclusive upper bound).
+    assert test_file.mtime.cal.in_days(-7, 1)  # Last 7 days through today
+    assert test_file.mtime.cal.in_months(-6, 1)  # Last 6 months through this month
+    assert test_file.mtime.cal.in_years(-2, 1)  # Last 2 years through this year
+    assert test_file.mtime.cal.in_weeks(-4, 1)  # Last 4 weeks through this week
 
     # Test parameter order normalization - these should be equivalent
-    result1 = test_file.mtime.cal.in_days(-7, 0)
-    result2 = test_file.mtime.cal.in_days(-7, 0)  # Corrected order
+    result1 = test_file.mtime.cal.in_days(-7, 1)
+    result2 = test_file.mtime.cal.in_days(-7, 1)  # Corrected order
     # Assert
     assert result1 == result2, "Range parameter order should be normalized"
 
     # Test weeks parameter order too
-    result3 = test_file.mtime.cal.in_weeks(-2, 0)
-    result4 = test_file.mtime.cal.in_weeks(-2, 0)  # Corrected order
+    result3 = test_file.mtime.cal.in_weeks(-2, 1)
+    result4 = test_file.mtime.cal.in_weeks(-2, 1)  # Corrected order
     # Assert
     assert result3 == result4, "Week range parameter order should be normalized"
 
@@ -115,7 +117,7 @@ def test_return_types(tmp_path: Path) -> None:
     assert isinstance(test_file.mtime.cal.in_minutes(0), bool)
     assert isinstance(test_file.mtime.cal.in_weeks(0), bool)
 
-    # Range methods should also return booleans
-    assert isinstance(test_file.mtime.cal.in_days(-7, 0), bool)
+    # Range methods should also return booleans (half-open intervals)
+    assert isinstance(test_file.mtime.cal.in_days(-7, 1), bool)
     assert isinstance(test_file.mtime.cal.in_months(-6, -1), bool)
-    assert isinstance(test_file.mtime.cal.in_weeks(-2, 0), bool)
+    assert isinstance(test_file.mtime.cal.in_weeks(-2, 1), bool)

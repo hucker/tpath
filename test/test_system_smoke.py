@@ -130,13 +130,13 @@ def test_comprehensive_system_smoke(tmp_path: Path) -> None:
     assert len(python_files) > 0
     # Test 9: Calendar range filtering
     for file_path in created_files:
-        # Test range functionality
+        # Test range functionality (frist uses half-open intervals)
         last_week: bool = file_path.mtime.cal.in_days(
-            -7, 0
-        )  # Last 7 days through today
+            -7, 1
+        )  # Last 7 days through today (exclusive end)
         last_month: bool = file_path.mtime.cal.in_months(
-            -1, 0
-        )  # Last month through this month
+            -1, 1
+        )  # Last month through this month (exclusive end)
 
         assert isinstance(last_week, bool)
         assert isinstance(last_month, bool)
