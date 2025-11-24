@@ -1,16 +1,16 @@
 ﻿# TPath - Enhanced pathlib with Age, Size, and Calendar Utilities
 
-TPath is a pathlib extension that provides first-class age, size, and calendar membership functions for file operations. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
+TPath is a pathlib extension that provides first-class age and size properties and calendar membership functions for Path objects. It allows you to work with files using natural, expressive syntax focused on **properties rather than calculations**.
 
 ## Philosophy: Property-Based File Operations
 
 **The core goal of TPath is to create a file object system that is property-based.**
 
-Instead of giving you raw timestamps and forcing you to do math related using the low level datastructures provided by the OS, `TPath` provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the `Path` object was overloaded to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured providing easy access to time information for '`create`, `access` and `modify`.  These details are handled behind the scenes and enable property based ages and calendar membership and business dates, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  The `calendar`,`age` and `business` functions are provided by a package called `frist` which has many property based features related to dates.
+Instead of giving you raw timestamps and forcing you to do math related using the low-level data structures provided by the OS, `TPath` provides direct properties for the things you actually need in real-world file operations, resulting in **readable, maintainable code**. In order to accomplish a reduction in cognitive load the `Path` object was extended to have a reference time (almost always set to `datetime.now()`) that allows file ages to be directly measured providing easy access to time information for '`create`, `access` and `modify`.  These details are handled behind the scenes and enable property based ages and calendar membership and business dates, minimal calls to `os.stat/path.stat` and nearly zero calculations for all file properties.  THe file properties will make comprehensions readable usually without requiring helper functions.  The `calendar`,`age` and `business` functions are provided by a package called `frist`.
 
 ### The Problem with Raw Timestamps
 
-Traditional path libraries (like `os` and `pathlib`) give you timestamps and force you into complex, error-prone calculations.  None of them are terribly difficult, but you end up with all sorts of conversion factors and switching back and forth between time stamps, dates and datetimes extracting the pieces that you need like this:
+Traditional path libraries (like `os` and `pathlib`) give you timestamps and force you into "complex", error-prone calculations, in many cases fraught with edge cases. You also need to be careful not calling stat multiple times when dealing with large numbers of files. None of this are terribly difficult, but you end up with details you need to manage like this:
 
 ```python
 from pathlib import Path
@@ -33,7 +33,7 @@ for path in Path("/var/log").rglob("*"):
 print(f"Found {len(old_files)} old files")
 ```
 
-And even worse, perhaps like this:
+And perhaps like this:
 
 ```python
 import fnmatch
@@ -82,25 +82,32 @@ print(f"Found {len(backup_candidates)} backup candidates")
 ```python
 from tpath import TPath
 
-# Simple case: One line instead of a dozen
-old_files = [f for f in Path("/var/log").rglob("*") 
-             if TPath(f).access.age.days > 7 and TPath(f).size.mb > 10]
+# Simple case: 2 readable lines rather than a bunch of low level interactions with no concern of multiple stat calls
+old_files = [f for f in TPath("/var/log").rglob("*") 
+             if p.is_file() and f.suffix==".txt" and f.create.age.days > 7 and f.size.mb > 10 ]
 ```
 
 No mental overhead. No error-prone calculations. Just readable code that expresses intent clearly.
+
+NOTE: There are a few "optimizations" that `TPath` has made that differs slightly from a regular `Path` object.
+
+- When you call `.stat` on the TPath (or access a property that needs .stat), the stat value is cached.  This is done to prevent multiple calls to stat that can be very expensive in time for large folders.  If this is an issue for you and your code depends on repeatedly stat-ing files with an object and expect updated data on each call, then you will need to not use TPath or update your code to create new `TPath` object when you decide you need to look at a new stat value for the file.
+- Creation time is handled slightly differently than a `Path` object.  If `birthtime` is available on your version of python/OS then that time is used rather than the creation time.  Please read the documentation on creation time.
 
 ## Quick Start
 
 ```python
 from tpath import TPath, matches
 
-# Create a TPath object - works like pathlib.Path (default time reference=dt.dateime.now())
+# Create a TPath object - works like pathlib.Path (default time reference=dt.datetime.now())
 path = TPath("my_file.txt")
 
 # Direct property access - no calculations needed
-print(f"File is {path.create.age.days} days old")
+print(f"File is {path.ctime.age.days:.2f} days old")
+print(f"File was modified {path.mtime.age.days:.2f} days old")
+print(f"File was accessed {path.atime.age.days:.2f} days old")
 print(f"Size: {path.size.mb} MB")
-print(f"Modified this week: {path.mtime.cal.in_days(-7, 0)}")
+print(f"Modified last 7 days: {path.mtime.cal.in_days(-7, 0)}")
 
 # Pattern matching
 print(f"Is Python file: {matches(path, '*.py')}")
@@ -110,7 +117,7 @@ print(f"Is Python file: {matches(path, '*.py')}")
 
 ### TPath - Enhanced Path Objects
 
-TPath extends pathlib.Path with property-based access to file metadata:
+TPath extends `pathlib.Path` with property-based access to file metadata:
 
 ```python
 from tpath import TPath
@@ -118,7 +125,7 @@ from tpath import TPath
 path = TPath("my_file.txt")
 
 # Age properties
-print(f"File is {path.age.days} days old")
+print(f"File is {path.create.age.days} days old")
 print(f"Modified {path.mtime.age.minutes} minutes ago")
 
 # Size properties  
@@ -235,15 +242,21 @@ MIT License - see LICENSE file for details.
 
 ### Status
 
-[![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-blue?logo=python&logoColor=white)](https://www.python.org/) [![Coverage](https://img.shields.io/badge/coverage-96%25-brightgreen)](https://github.com/hucker/frist/actions) [![Pytest](https://img.shields.io/badge/pytest-100%25%20pass%20%7C%2092%20tests-blue?logo=pytest&logoColor=white)](https://docs.pytest.org/en/stable/) [![Ruff](https://img.shields.io/badge/ruff-100%25-brightgreen?logo=ruff&logoColor=white)](https://github.com/charliermarsh/ruff)
+[![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13%20|%203.14-blue?logo=python&logoColor=white)](https://www.python.org/) [![Coverage](https://img.shields.io/badge/coverage-97%25-brightgreen)](https://github.com/hucker/frist/actions) [![Pytest](https://img.shields.io/badge/pytest-100%25%20pass%20%7C%20100%20tests-blue?logo=pytest&logoColor=white)](https://docs.pytest.org/en/stable/) [![Ruff](https://img.shields.io/badge/ruff-100%25-brightgreen?logo=ruff&logoColor=white)](https://github.com/charliermarsh/ruff)
 
-### Pytest (100% pass/96% coverage)
+### Pytest (100% pass/97% coverage)
 
 ```text
 src\tpath\__init__.py                           8      0      0      0   100%
 src\tpath\_constants.py                        17      0      0      0   100%
-src\tpath\_core.py                            151     12     70      7    90%
-src\tpath\_size.py                             57      0     32      0   100%
-src\tpath\_time.py                             69      1     36      1    98%
+src\tpath\_core.py                            151      5     34      5    95%
+src\tpath\_size.py                             57      0      6      0   100%
+src\tpath\_time.py                             69      0     20      0   100%
 src\tpath\_utils.py                            25      0     14      1    97%
+```
+
+### Ruff
+
+```text
+All checks passed!
 ```

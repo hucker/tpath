@@ -3,12 +3,12 @@ Test file for Time functionality (_time.py).
 """
 
 import datetime as dt
-from pathlib import Path
+import pathlib
 
 from tpath import Age, PathTime, TPath
 
 
-def test_time_properties(tmp_path: Path) -> None:
+def test_time_properties(tmp_path: pathlib.Path) -> None:
     """
     Test PathTime class properties.
 
@@ -33,7 +33,7 @@ def test_time_properties(tmp_path: Path) -> None:
     assert isinstance(atime.age, Age)
 
 
-def test_time_timestamp_access(tmp_path: Path) -> None:
+def test_time_timestamp_access(tmp_path: pathlib.Path) -> None:
     """Test Time timestamp property."""
 
     # Arrange
@@ -55,7 +55,7 @@ def test_time_timestamp_access(tmp_path: Path) -> None:
     assert abs(atime.timestamp - now) < 60
 
 
-def test_time_datetime_access(tmp_path: Path) -> None:
+def test_time_datetime_access(tmp_path: pathlib.Path) -> None:
     """Test Time datetime property."""
 
     # Arrange
@@ -76,7 +76,7 @@ def test_time_datetime_access(tmp_path: Path) -> None:
     assert time_diff < 60  # Within 1 minute
 
 
-def test_time_with_custom_base(tmp_path: Path) -> None:
+def test_time_with_custom_base(tmp_path: pathlib.Path) -> None:
     """Test Time with custom base time."""
 
     # Arrange
@@ -121,3 +121,21 @@ def test_time_nonexistent_file() -> None:
     assert ctime.timestamp == 0
     assert mtime.timestamp == 0
     assert atime.timestamp == 0
+
+
+def test_target_dt_uses_ref_dt_for_nonexistent_file(tmp_path: pathlib.Path):
+    """When the file doesn't exist timestamp == 0 and target_dt falls back to ref_dt."""
+    # Arrange
+    ref = dt.datetime(2025, 1, 1, 12, 0, 0)
+    missing = tmp_path / "does_not_exist.txt"
+    assert not missing.exists()
+
+    # Act
+    pt = PathTime(missing, "mtime", ref)
+
+    # Assert
+    assert pt.timestamp == 0
+    assert pt.target_dt == ref
+    # age should also reflect the ref time for nonexistent files
+    assert pt.age.start_time == ref
+    assert pt.age.end_time == ref

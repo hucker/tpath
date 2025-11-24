@@ -155,11 +155,11 @@ wheels = [
 
 [[package]]
 name = "frist"
-version = "0.15.0"
+version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/57/f1/47787a7d97db9d410f86794a586c26d65a4c0ad48d28139765541b97f520/frist-0.15.0.tar.gz", hash = "sha256:a6643d99dfe2101ba28e55afef710abfa7ea19fa96e435aa54593f5635a772a1", size = 60266 }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/60/56dec6442bdaabac91176dee97a9478139ea991cf6d63ca28eacb41d23c7/frist-0.16.0.tar.gz", hash = "sha256:04af971461bfab7a3f914eaf6a91d330bc6140da7c58da5caec0cbe7d4ecade2", size = 61947 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/e3/a56f874ea4acc59860731ed12f8fa41c571e7836ec3aac9c8cbc5bee90b2/frist-0.15.0-py3-none-any.whl", hash = "sha256:9656371b81b21110d5e55b35c3dff719450a76b76eba82a705b940fb3255578e", size = 26922 },
+    { url = "https://files.pythonhosted.org/packages/10/af/c7d0f0b439894fd67e3d90193dc35ac0cdbec513adfb7fa6f013e11a908a/frist-0.16.0-py3-none-any.whl", hash = "sha256:62e0de3ac2c540b5be21ebf0f823a9be8210cf9726c58358e0e5273999c9df4f", size = 27867 },
 ]
 
 [[package]]
