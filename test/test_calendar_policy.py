@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from frist import Biz, CalendarPolicy
+from frist import Biz, BizPolicy
 
 from tpath import TPath
 
@@ -71,7 +71,7 @@ def test_calendar_policy_integration(
     expected_is_holiday: bool,
 ) -> None:
     """
-    Test TPath and CalendarPolicy integration for custom calendar logic.
+    Test TPath and BizPolicy integration for custom calendar logic.
 
     Args:
         tmp_path: pytest fixture for temporary directory.
@@ -84,7 +84,7 @@ def test_calendar_policy_integration(
     # Arrange
 
     # Arrange: Custom calendar policy (Mon–Thu workweek, fiscal year starts in April, New Year's Day holiday)
-    custom_policy = CalendarPolicy(
+    custom_policy = BizPolicy(
         workdays=[0, 1, 2, 3],  # Mon–Thu (0=Mon)
         fiscal_year_start_month=4,  # April
         holidays={"2025-01-01"},  # New Year's Day as YYYY-MM-DD string
@@ -104,7 +104,7 @@ def test_calendar_policy_integration(
 
     actual_fiscal_year: int = biz.fiscal_year
     actual_fiscal_quarter: int = biz.fiscal_quarter
-    actual_is_business_day: bool = custom_policy.is_business_day(biz.target_time)
+    actual_is_business_day: bool = custom_policy.is_business_day(biz.target_dt)
     actual_is_holiday: bool = biz.holiday
 
     # Assert

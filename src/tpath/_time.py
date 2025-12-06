@@ -9,7 +9,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Literal
 
-from frist import Age, Biz, Cal, CalendarPolicy
+from frist import Age, Biz, BizPolicy, Cal
 
 TimeType = Literal["ctime", "mtime", "atime", "create", "modify", "access"]
 
@@ -28,13 +28,13 @@ class PathTime:
         path: Path,
         time_type: TimeType,
         ref_dt: dt.datetime,
-        cal_policy: CalendarPolicy | None = None,
+        cal_policy: BizPolicy | None = None,
     ) -> None:
         self.path = path
         # Normalize time_type aliases to standard names
         self.time_type = self._normalize_time_type(time_type)
         self._ref_dt: dt.datetime = ref_dt
-        self._cal_policy: CalendarPolicy | None = cal_policy
+        self._cal_policy: BizPolicy | None = cal_policy
         self._target_dt: dt.datetime | None = None  # Lazy loading
 
     @staticmethod
@@ -84,9 +84,9 @@ class PathTime:
     def biz(self) -> Biz:
         """Get business logic filtering functionality for this time object."""
         return Biz(
-            target_time=self.target_dt,
-            ref_time=self.ref_dt,
-            policy=self._cal_policy,
+            self.target_dt,
+            self.ref_dt,
+            self._cal_policy,
         )
 
     @property

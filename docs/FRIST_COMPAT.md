@@ -16,14 +16,14 @@ Latest published version
 Calendar semantics
 
 - `frist` uses half-open calendar intervals everywhere: start is inclusive, end is exclusive.
-  - Example: `Cal(...).in_days(-7, 1)` covers the 7 days before the reference **and** the reference day (use `end=1` to include ref day).
-  - This affects `in_minutes`, `in_hours`, `in_days`, `in_weeks`, `in_months`, `in_quarters`, `in_years`, and policy-aware `Biz.in_*` helpers.
+  - Example: `Cal(...).day.in_(-7, 1)` covers the 7 days before the reference **and** the reference day (use `end=1` to include ref day).
+  - This affects `minute.in_`, `hour.in_`, `day.in_`, `week.in_`, `month.in_`, `qtr.in_`, `year.in_`, and policy-aware `Biz.work_day` helpers.
 
-`CalendarPolicy` constructor (exact signature)
+`BizPolicy` constructor (exact signature)
 
 - From `src/frist/_cal_policy.py` (main branch / v0.15.0):
 
-dataclass CalendarPolicy
+dataclass BizPolicy
 
 - `fiscal_year_start_month: int = 1`
 - `workdays: list[int] = field(default_factory=lambda: [0, 1, 2, 3, 4])`
@@ -33,8 +33,8 @@ dataclass CalendarPolicy
 
 Important parameter notes
 
-- Use the exact field names above when constructing a `CalendarPolicy` instance.
-- Example: `CalendarPolicy(fiscal_year_start_month=4, workdays=[0,1,2,3,4], holidays={"2026-01-01"})`
+- Use the exact field names above when constructing a `BizPolicy` instance.
+- Example: `BizPolicy(fiscal_year_start_month=4, workdays=[0,1,2,3,4], holidays={"2026-01-01"})`
 - `workdays` must be a `list[int]` (Monday=0 .. Sunday=6). Passing a `set` will raise a runtime TypeError in the current implementation.
 - `holidays` must be a `set[str]` of ISO date strings (`YYYY-MM-DD`).
 - `fiscal_year_start_month` must be an `int` 1..12.
@@ -56,7 +56,7 @@ Recommended actions for `tpath`
 
   Then regenerate your lockfile (`uv lock` or the lock tool you use) and verify CI.
 
-- Update any `CalendarPolicy(...)` calls to use the exact field names shown above and pass `workdays` as a `list`.
+- Update any `BizPolicy(...)` calls to use the exact field names shown above and pass `workdays` as a `list`.
 - Audit tests that check calendar ranges and adjust to half-open intervals (i.e., when wanting to include the reference day use `end=1`).
 
 Quick examples
@@ -64,8 +64,8 @@ Quick examples
 - Create a policy:
 
   ```py
-  from frist import CalendarPolicy
-  policy = CalendarPolicy(
+  from frist import BizPolicy
+  policy = BizPolicy(
       fiscal_year_start_month=4,
       workdays=[0,1,2,3,4],
       start_of_business=datetime.time(9,0),
@@ -91,6 +91,6 @@ Notes & caveats
 If you want, I can:
 
 - Update `pyproject.toml` in this repo to pin `frist==0.15.0` and regenerate the lockfile.
-- Search the `tpath` codebase for `CalendarPolicy(`, `fy_start_month`, `fy_start`, or `workdays=` occurrences and update usages/examples.
+- Search the `tpath` codebase for `BizPolicy(`, `fy_start_month`, `fy_start`, or `workdays=` occurrences and update usages/examples.
 
 (Generated on 2025-11-22)

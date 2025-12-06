@@ -106,12 +106,12 @@ def test_comprehensive_system_smoke(tmp_path: Path) -> None:
     # Test 6: Calendar filtering
     for file_path in created_files:
         # All files should be in current time periods
-        assert file_path.mtime.cal.in_years(0)  # This year
-        assert file_path.mtime.cal.in_months(0)  # This month
+        assert file_path.mtime.cal.year.in_(0)  # This year
+        assert file_path.mtime.cal.month.in_(0)  # This month
 
         # Today check depends on when files were created
         # (Some might be from "yesterday" due to offset)
-        calendar_result: bool = file_path.mtime.cal.in_days(0)
+        calendar_result: bool = file_path.mtime.cal.day.in_(0)
         assert isinstance(calendar_result, bool)
 
     # Test 7: Size conversions
@@ -131,10 +131,10 @@ def test_comprehensive_system_smoke(tmp_path: Path) -> None:
     # Test 9: Calendar range filtering
     for file_path in created_files:
         # Test range functionality (frist uses half-open intervals)
-        last_week: bool = file_path.mtime.cal.in_days(
+        last_week: bool = file_path.mtime.cal.day.in_(
             -7, 1
         )  # Last 7 days through today (exclusive end)
-        last_month: bool = file_path.mtime.cal.in_months(
+        last_month: bool = file_path.mtime.cal.month.in_(
             -1, 1
         )  # Last month through this month (exclusive end)
 

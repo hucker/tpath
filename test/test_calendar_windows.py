@@ -15,16 +15,16 @@ def test_calendar_basics(tmp_path: Path) -> None:
 
     # Act & Assert
     # File should be modified today
-    assert test_file.mtime.cal.in_days(0)
-    assert test_file.mtime.cal.in_months(0)
-    assert test_file.mtime.cal.in_quarters(0)
-    assert test_file.mtime.cal.in_years(0)
-    assert test_file.mtime.cal.in_weeks(0)  # This week
+    assert test_file.mtime.cal.day.in_(0)
+    assert test_file.mtime.cal.month.in_(0)
+    assert test_file.mtime.cal.qtr.in_(0)
+    assert test_file.mtime.cal.year.in_(0)
+    assert test_file.mtime.cal.week.in_(0)  # This week
 
     # File should not be modified in the past
-    assert not test_file.mtime.cal.in_days(-1)  # Yesterday
-    assert not test_file.mtime.cal.in_months(-1)  # Last month
-    assert not test_file.mtime.cal.in_weeks(-1)  # Last week
+    assert not test_file.mtime.cal.day.in_(-1)  # Yesterday
+    assert not test_file.mtime.cal.month.in_(-1)  # Last month
+    assert not test_file.mtime.cal.week.in_(-1)  # Last week
 
 
 def test_method_existence(tmp_path: Path) -> None:
@@ -39,13 +39,13 @@ def test_method_existence(tmp_path: Path) -> None:
 
     # Assert
     # Check methods exist on cal property
-    assert hasattr(test_file.mtime.cal, "in_days")
-    assert hasattr(test_file.mtime.cal, "in_months")
-    assert hasattr(test_file.mtime.cal, "in_quarters")
-    assert hasattr(test_file.mtime.cal, "in_years")
-    assert hasattr(test_file.mtime.cal, "in_hours")
-    assert hasattr(test_file.mtime.cal, "in_minutes")
-    assert hasattr(test_file.mtime.cal, "in_weeks")
+    assert hasattr(test_file.mtime.cal, "day")
+    assert hasattr(test_file.mtime.cal, "month")
+    assert hasattr(test_file.mtime.cal, "qtr")
+    assert hasattr(test_file.mtime.cal, "year")
+    assert hasattr(test_file.mtime.cal, "hour")
+    assert hasattr(test_file.mtime.cal, "minute")
+    assert hasattr(test_file.mtime.cal, "week")
 
 
 def test_aliases(tmp_path: Path) -> None:
@@ -60,9 +60,9 @@ def test_aliases(tmp_path: Path) -> None:
 
     # Assert
     # Check aliases exist on cal property
-    assert hasattr(test_file.create.cal, "in_days")
-    assert hasattr(test_file.modify.cal, "in_days")
-    assert hasattr(test_file.access.cal, "in_days")
+    assert hasattr(test_file.create.cal, "day")
+    assert hasattr(test_file.modify.cal, "day")
+    assert hasattr(test_file.access.cal, "day")
 
 
 def test_range_functionality(tmp_path: Path) -> None:
@@ -79,20 +79,20 @@ def test_range_functionality(tmp_path: Path) -> None:
     # Test ranges that include current time
     # frist uses half-open intervals [start, end) so to include the
     # current unit (offset 0) we must pass end=1 (exclusive upper bound).
-    assert test_file.mtime.cal.in_days(-7, 1)  # Last 7 days through today
-    assert test_file.mtime.cal.in_months(-6, 1)  # Last 6 months through this month
-    assert test_file.mtime.cal.in_years(-2, 1)  # Last 2 years through this year
-    assert test_file.mtime.cal.in_weeks(-4, 1)  # Last 4 weeks through this week
+    assert test_file.mtime.cal.day.in_(-7, 1)  # Last 7 days through today
+    assert test_file.mtime.cal.month.in_(-6, 1)  # Last 6 months through this month
+    assert test_file.mtime.cal.year.in_(-2, 1)  # Last 2 years through this year
+    assert test_file.mtime.cal.week.in_(-4, 1)  # Last 4 weeks through this week
 
     # Test parameter order normalization - these should be equivalent
-    result1 = test_file.mtime.cal.in_days(-7, 1)
-    result2 = test_file.mtime.cal.in_days(-7, 1)  # Corrected order
+    result1 = test_file.mtime.cal.day.in_(-7, 1)
+    result2 = test_file.mtime.cal.day.in_(-7, 1)  # Corrected order
     # Assert
     assert result1 == result2, "Range parameter order should be normalized"
 
     # Test weeks parameter order too
-    result3 = test_file.mtime.cal.in_weeks(-2, 1)
-    result4 = test_file.mtime.cal.in_weeks(-2, 1)  # Corrected order
+    result3 = test_file.mtime.cal.week.in_(-2, 1)
+    result4 = test_file.mtime.cal.week.in_(-2, 1)  # Corrected order
     # Assert
     assert result3 == result4, "Week range parameter order should be normalized"
 
@@ -109,15 +109,14 @@ def test_return_types(tmp_path: Path) -> None:
 
     # Assert
     # All methods should return booleans
-    assert isinstance(test_file.mtime.cal.in_days(0), bool)
-    assert isinstance(test_file.mtime.cal.in_months(0), bool)
-    assert isinstance(test_file.mtime.cal.in_quarters(0), bool)
-    assert isinstance(test_file.mtime.cal.in_years(0), bool)
-    assert isinstance(test_file.mtime.cal.in_hours(0), bool)
-    assert isinstance(test_file.mtime.cal.in_minutes(0), bool)
-    assert isinstance(test_file.mtime.cal.in_weeks(0), bool)
-
+    assert isinstance(test_file.mtime.cal.day.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.month.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.qtr.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.year.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.hour.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.minute.in_(0), bool)
+    assert isinstance(test_file.mtime.cal.week.in_(0), bool)
     # Range methods should also return booleans (half-open intervals)
-    assert isinstance(test_file.mtime.cal.in_days(-7, 1), bool)
-    assert isinstance(test_file.mtime.cal.in_months(-6, -1), bool)
-    assert isinstance(test_file.mtime.cal.in_weeks(-2, 1), bool)
+    assert isinstance(test_file.mtime.cal.day.in_(-7, 1), bool)
+    assert isinstance(test_file.mtime.cal.month.in_(-6, -1), bool)
+    assert isinstance(test_file.mtime.cal.week.in_(-2, 1), bool)

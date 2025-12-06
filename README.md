@@ -198,7 +198,7 @@ The integration with Frist brings calendar and age properties to `TPath` objects
 ```python
 # Advanced calendar operations
 print(f"Modified in the last quarter: {path.mtime.cal.in_quarters(-1, 0)}")
-print(f"Accessed in the last year: {path.atime.cal.in_years(-1, 0)}")
+print(f"Accessed in the last year: {path.atime.cal.years.in_(-1, 0)}")
 
 # Rich age calculations
 print(f"File age in seconds: {path.age.seconds}")
